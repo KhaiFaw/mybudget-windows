@@ -1,0 +1,31 @@
+# Build output
+**/bin/
+**/obj/
+artifacts/
+TestResults/
+.vs/
+.vscode/
+
+# Local budget data and exports
+*.db
+*.db-shm
+*.db-wal
+backups/
+exports/
+
+# Packaging and signing
+*.appx
+*.appxbundle
+*.msix
+*.msixbundle
+*.msixupload
+*.pfx
+*.cer
+
+# Local tooling and operating-system files
+.idea/
+*.user
+*.suo
+*.tmp
+Thumbs.db
+.DS_Store

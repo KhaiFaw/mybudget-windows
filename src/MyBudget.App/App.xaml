@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Application
+    x:Class="MyBudget.App.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:MyBudget.App">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F5F6F2" />
+                    <SolidColorBrush x:Key="AppSurfaceBrush" Color="#FFFFFFFF" />
+                    <SolidColorBrush x:Key="AppSurfaceMutedBrush" Color="#EEF1EC" />
+                    <SolidColorBrush x:Key="AppBorderBrush" Color="#DDE3DC" />
+                    <SolidColorBrush x:Key="AppTextPrimaryBrush" Color="#14231F" />
+                    <SolidColorBrush x:Key="AppTextSecondaryBrush" Color="#60716B" />
+                    <SolidColorBrush x:Key="AppAccentBrush" Color="#0B8F75" />
+                    <SolidColorBrush x:Key="AppAccentSoftBrush" Color="#DDF4EC" />
+                    <SolidColorBrush x:Key="AppDangerBrush" Color="#D65A55" />
+                    <SolidColorBrush x:Key="AppDangerSoftBrush" Color="#FCE8E6" />
+                    <SolidColorBrush x:Key="AppWarningBrush" Color="#B7791F" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0C1517" />
+                    <SolidColorBrush x:Key="AppSurfaceBrush" Color="#142124" />
+                    <SolidColorBrush x:Key="AppSurfaceMutedBrush" Color="#1A2A2D" />
+                    <SolidColorBrush x:Key="AppBorderBrush" Color="#2C4143" />
+                    <SolidColorBrush x:Key="AppTextPrimaryBrush" Color="#F4FAF7" />
+                    <SolidColorBrush x:Key="AppTextSecondaryBrush" Color="#9EB3AD" />
+                    <SolidColorBrush x:Key="AppAccentBrush" Color="#33D0AB" />
+                    <SolidColorBrush x:Key="AppAccentSoftBrush" Color="#193E37" />
+                    <SolidColorBrush x:Key="AppDangerBrush" Color="#FF8B84" />
+                    <SolidColorBrush x:Key="AppDangerSoftBrush" Color="#482724" />
+                    <SolidColorBrush x:Key="AppWarningBrush" Color="#F2C36B" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <Style x:Key="CardStyle" TargetType="Border">
+                <Setter Property="Background" Value="{ThemeResource AppSurfaceBrush}" />
+                <Setter Property="BorderBrush" Value="{ThemeResource AppBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="18" />
+                <Setter Property="Padding" Value="20" />
+            </Style>
+            <Style x:Key="CompactCardStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+                <Setter Property="Padding" Value="16" />
+                <Setter Property="CornerRadius" Value="14" />
+            </Style>
+            <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="20" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Foreground" Value="{ThemeResource AppTextPrimaryBrush}" />
+            </Style>
+            <Style x:Key="PageTitleStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="30" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Foreground" Value="{ThemeResource AppTextPrimaryBrush}" />
+            </Style>
+            <Style x:Key="SecondaryTextStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{ThemeResource AppTextSecondaryBrush}" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+            <Style x:Key="PrimaryActionButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="{ThemeResource AppAccentBrush}" />
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="Padding" Value="16,9" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
