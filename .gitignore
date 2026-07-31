@@ -21,6 +21,9 @@ exports/
 *.msixupload
 *.pfx
 *.cer
+*.p12
+*.pvk
+*.key
 
 # Local tooling and operating-system files
 .idea/

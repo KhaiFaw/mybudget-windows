@@ -4,5 +4,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Deterministic>true</Deterministic>
+    <Authors>KhaiFaw</Authors>
+    <Company>KhaiFaw</Company>
+    <Product>MyBudget</Product>
+    <Copyright>Copyright © 2026 KhaiFaw. All rights reserved.</Copyright>
   </PropertyGroup>
 </Project>
