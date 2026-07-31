@@ -17,6 +17,10 @@ Make monthly budgeting fast enough to become a habit while keeping the user's da
 9. Persist the chosen light or dark theme.
 10. Export transactions to CSV, import compatible CSV, and create a database backup.
 11. Offer synthetic demo data without mixing it with real data unexpectedly.
+12. Resolve today from the PC's local calendar, default new entries to that day, and refresh an open app after midnight.
+13. Let the user set the monthly income total from the dashboard while preserving separately entered income.
+14. Let the user edit recurring bills and show the nearest occurrence as a calendar-day countdown.
+15. Provide a recognizable multi-resolution Windows icon in the EXE, title bar, and taskbar.
 
 ## Calculation rules
 
@@ -27,6 +31,8 @@ Make monthly budgeting fast enough to become a habit while keeping the user's da
 - currency values use `decimal`, never binary floating-point
 - monthly date ranges are inclusive at the start and exclusive at the next month
 - recurring due days from 29 to 31 clamp to the last valid day of a month
+- bill countdowns use local calendar days rather than elapsed UTC hours
+- editing the dashboard income total changes only MyBudget's managed monthly-income entry
 
 ## Important boundaries
 
@@ -42,3 +48,5 @@ Make monthly budgeting fast enough to become a habit while keeping the user's da
 - Light and dark themes retain readable contrast.
 - No real database, export, backup, secret, or signing certificate is tracked by Git.
 - Closing and reopening the app retains data and the theme preference.
+- Opening the app selects the PC-local current month and day; leaving it open across midnight refreshes the day automatically.
+- A recurring bill can be edited without creating a duplicate, and the nearest due occurrence is ordered first.

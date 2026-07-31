@@ -29,8 +29,12 @@ flowchart LR
 
 - A `NavigationView` keeps the major areas predictable.
 - The dashboard distinguishes savings from spending; this prevents saving money from looking like an expense.
+- Local dates stay as `DateOnly` values, so a due-date countdown cannot drift because of UTC offsets or daylight-saving changes.
+- The editable income card owns one identifiable monthly-income transaction and leaves imported or separately entered income untouched.
 - Theme resources provide semantic colors so one interface supports both accessible light and dark modes.
 - Views call commands on a view model; calculations remain in the core project.
+
+For visual testing and portfolio captures, `MYBUDGET_DATA_DIRECTORY` can point the app at an isolated synthetic database. Normal launches ignore that override and continue to use `%LOCALAPPDATA%\KhaiFaw\MyBudget`.
 
 ## Recovery and portability
 

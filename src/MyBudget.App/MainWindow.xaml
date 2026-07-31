@@ -20,7 +20,7 @@
 
         <TitleBar x:Name="AppTitleBar" Title="MyBudget" Subtitle="Private and saved locally">
             <TitleBar.IconSource>
-                <ImageIconSource ImageSource="Assets/AppIcon.ico" />
+                <ImageIconSource ImageSource="Assets/MyBudget.ico" />
             </TitleBar.IconSource>
         </TitleBar>
 

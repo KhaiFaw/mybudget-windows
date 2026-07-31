@@ -47,6 +47,19 @@ public sealed record RecurringBill(
     DateOnly? StartDate = null,
     DateOnly? EndDate = null);
 
+/// <summary>
+/// The next concrete occurrence of a recurring bill relative to a selected
+/// local calendar date. DaysUntilDue is calendar based, so daylight-saving
+/// and UTC offsets cannot change the countdown.
+/// </summary>
+public sealed record RecurringBillOccurrence(
+    RecurringBill Bill,
+    DateOnly DueDate,
+    int DaysUntilDue)
+{
+    public bool IsDueToday => DaysUntilDue == 0;
+}
+
 public sealed record SavingsGoal(
     long Id,
     string Name,

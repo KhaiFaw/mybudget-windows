@@ -4,23 +4,28 @@ MyBudget is a modern, local-first monthly budget planner built for Windows. It h
 
 > Source availability: this repository is private and proprietary. A separate public showcase is intended for portfolio viewing. See [COPYRIGHT.md](COPYRIGHT.md).
 
-## Product preview
+## Native app preview
 
 | Light | Dark |
 |---|---|
 | ![MyBudget light dashboard](docs/screenshots/mybudget-dashboard-light.png) | ![MyBudget dark dashboard](docs/screenshots/mybudget-dashboard-dark.png) |
 
-The screenshots are approved visual targets. The running application follows the same information hierarchy while using native WinUI controls and responsive layouts.
+These are captures from the running native WinUI application using the built-in synthetic budget. No personal financial data is shown.
+
+![MyBudget recurring bills with edit controls and next-due countdowns](docs/screenshots/mybudget-bills-dark.png)
 
 ## Features
 
 - Monthly dashboard with income, planned spending, actual spending, savings, and available money kept separate
+- PC-local day tracking: the app opens on today, new entries default to today, and an open app follows midnight
+- Editable monthly income total directly on the dashboard without deleting unrelated income entries
 - Category plans with clear over-budget warnings
 - Income, expense, savings, refund, and transfer transaction types
-- Recurring bills with safe end-of-month due-date handling
+- Recurring bills with edit controls, nearest-due countdowns, and safe end-of-month handling
 - Savings goals and progress tracking
 - Monthly category reports
 - Persistent light and dark Windows styling
+- Custom multi-resolution Windows icon for the EXE, title bar, and taskbar
 - Subtle KF creator mark and KhaiFaw authorship metadata
 - Local SQLite storage, explicit backup, and CSV import/export
 - Optional synthetic demo data; no real financial details are committed
@@ -59,10 +64,12 @@ dotnet publish src/MyBudget.App/MyBudget.App.csproj -c Release --no-restore -p:P
 
 The publish command creates a portable folder with `artifacts/MyBudget-win-x64/MyBudget.App.exe`. If it is distributed as a ZIP, extract the entire ZIP before opening the app, then double-click `MyBudget.App.exe` inside the extracted folder. Keep every published file and folder together; moving or copying only the EXE omits resources that WinUI needs to start. The application database is created under the current Windows user's local application-data folder. Database files, exports, backups, signing certificates, and build output are excluded from Git.
 
+Icon sources and the repeatable Windows-asset conversion command are documented in [tools/README.md](tools/README.md).
+
 ## Privacy and limitations
 
 The current app is local-first, but the SQLite database is not encrypted at rest. Windows account protection and device encryption remain important. Review [docs/privacy.md](docs/privacy.md) before entering sensitive notes or sharing a backup.
 
 ## Status
 
-This is an actively developed personal portfolio project. The current Release build passes 45 automated tests and a seven-screen light/dark visual smoke test. See [docs/verification.md](docs/verification.md) for reproducible evidence.
+This is an actively developed personal portfolio project. The current Release build passes 61 automated tests and a seven-screen light/dark visual smoke test. See [docs/verification.md](docs/verification.md) for reproducible evidence.

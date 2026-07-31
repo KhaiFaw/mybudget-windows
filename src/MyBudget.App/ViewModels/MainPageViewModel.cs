@@ -10,7 +10,8 @@ namespace MyBudget.App.ViewModels;
 public sealed class MainPageViewModel : ObservableObject
 {
     private readonly IBudgetRepository _repository;
-    private BudgetMonth _selectedMonth = BudgetMonth.FromDate(DateOnly.FromDateTime(DateTime.Today));
+    private DateOnly _localToday;
+    private BudgetMonth _selectedMonth;
     private BudgetSnapshot _snapshot;
     private bool _isBusy;
     private bool _isDarkMode;
@@ -23,10 +24,13 @@ public sealed class MainPageViewModel : ObservableObject
     private DateTimeOffset _transactionDate;
     private double _transactionAmount;
     private string _transactionNote = string.Empty;
+    private double _monthlyIncomeAmount;
+    private string _monthlyIncomeEditorHintText = "Other income entries will stay untouched.";
     private string _billName = string.Empty;
     private double _billAmount;
     private double _billDueDay = 1;
     private CategoryOption? _selectedBillCategory;
+    private RecurringBill? _billBeingEdited;
     private string _goalName = string.Empty;
     private double _goalTargetAmount;
     private double _goalCurrentAmount;
@@ -36,23 +40,31 @@ public sealed class MainPageViewModel : ObservableObject
     {
         _repository = repository;
         DatabasePath = databasePath;
+        _localToday = BudgetDateSelection.GetLocalToday();
+        _selectedMonth = BudgetMonth.FromDate(_localToday);
         _snapshot = BudgetSnapshot.Empty(_selectedMonth);
-        _transactionDate = DefaultTransactionDate(_selectedMonth);
+        _transactionDate = ToLocalDateTimeOffset(_localToday);
 
         TransactionTypes = Enum.GetValues<TransactionType>()
             .Select(type => new TransactionTypeOption(type, SplitWords(type.ToString())))
             .ToArray();
         SelectedTransactionType = TransactionTypes.First(option => option.Type == TransactionType.Expense);
 
-        PreviousMonthCommand = new AsyncRelayCommand(() => ChangeMonthAsync(_selectedMonth.Previous));
-        NextMonthCommand = new AsyncRelayCommand(() => ChangeMonthAsync(_selectedMonth.Next));
-        CurrentMonthCommand = new AsyncRelayCommand(() => ChangeMonthAsync(BudgetMonth.FromDate(DateOnly.FromDateTime(DateTime.Today))));
-        SavePlanCommand = new AsyncRelayCommand(SavePlanAsync);
-        AddTransactionCommand = new AsyncRelayCommand(AddTransactionAsync);
-        AddBillCommand = new AsyncRelayCommand(AddBillAsync);
-        AddGoalCommand = new AsyncRelayCommand(AddGoalAsync);
-        SaveSettingsCommand = new AsyncRelayCommand(SaveSettingsAsync);
-        SeedDemoDataCommand = new AsyncRelayCommand(SeedDemoDataAsync);
+        PreviousMonthCommand = new AsyncRelayCommand(
+            () => ChangeMonthAsync(_selectedMonth.Previous),
+            CanRunCommand);
+        NextMonthCommand = new AsyncRelayCommand(
+            () => ChangeMonthAsync(_selectedMonth.Next),
+            CanRunCommand);
+        CurrentMonthCommand = new AsyncRelayCommand(ChangeToCurrentMonthAsync, CanRunCommand);
+        SavePlanCommand = new AsyncRelayCommand(SavePlanAsync, CanRunCommand);
+        AddTransactionCommand = new AsyncRelayCommand(AddTransactionAsync, CanRunCommand);
+        SaveMonthlyIncomeCommand = new AsyncRelayCommand(SaveMonthlyIncomeAsync, CanRunCommand);
+        AddBillCommand = new AsyncRelayCommand(AddBillAsync, CanRunCommand);
+        CancelBillEditCommand = new RelayCommand(ResetBillForm, CanRunCommand);
+        AddGoalCommand = new AsyncRelayCommand(AddGoalAsync, CanRunCommand);
+        SaveSettingsCommand = new AsyncRelayCommand(SaveSettingsAsync, CanRunCommand);
+        SeedDemoDataCommand = new AsyncRelayCommand(SeedDemoDataAsync, CanRunCommand);
     }
 
     public event EventHandler<bool>? ThemeRequested;
@@ -62,7 +74,9 @@ public sealed class MainPageViewModel : ObservableObject
     public IAsyncRelayCommand CurrentMonthCommand { get; }
     public IAsyncRelayCommand SavePlanCommand { get; }
     public IAsyncRelayCommand AddTransactionCommand { get; }
+    public IAsyncRelayCommand SaveMonthlyIncomeCommand { get; }
     public IAsyncRelayCommand AddBillCommand { get; }
+    public IRelayCommand CancelBillEditCommand { get; }
     public IAsyncRelayCommand AddGoalCommand { get; }
     public IAsyncRelayCommand SaveSettingsCommand { get; }
     public IAsyncRelayCommand SeedDemoDataCommand { get; }
@@ -80,6 +94,12 @@ public sealed class MainPageViewModel : ObservableObject
 
     public string DatabasePath { get; }
     public string SelectedMonthText => new DateTime(_selectedMonth.Year, _selectedMonth.Month, 1).ToString("MMMM yyyy", CultureInfo.CurrentCulture);
+    public string TodayHeadingText => _localToday
+        .ToDateTime(TimeOnly.MinValue)
+        .ToString("dddd, d MMMM yyyy", CultureInfo.CurrentCulture);
+    public string TodayContextText => _selectedMonth.Contains(_localToday)
+        ? "Viewing the current month. New entries default to your PC's local date."
+        : $"Today is {_localToday:dd MMM yyyy}; viewing {SelectedMonthText}.";
     public string IncomeText { get; private set; } = "RM 0.00";
     public string PlannedText { get; private set; } = "RM 0.00";
     public string SpentText { get; private set; } = "RM 0.00";
@@ -96,6 +116,9 @@ public sealed class MainPageViewModel : ObservableObject
     public Visibility EmptyBillsVisibility => Bills.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     public Visibility EmptyGoalsVisibility => Goals.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     public Visibility StatusErrorVisibility => StatusIsError ? Visibility.Visible : Visibility.Collapsed;
+    public bool IsEditingBill => _billBeingEdited is not null;
+    public string BillFormTitle => IsEditingBill ? "Edit recurring bill" : "Add recurring bill";
+    public string BillSubmitText => IsEditingBill ? "Save bill changes" : "Add recurring bill";
 
     public bool IsBusy
     {
@@ -105,6 +128,7 @@ public sealed class MainPageViewModel : ObservableObject
             if (SetProperty(ref _isBusy, value))
             {
                 OnPropertyChanged(nameof(LocalSaveText));
+                NotifyCommandCanExecuteChanged();
             }
         }
     }
@@ -182,6 +206,18 @@ public sealed class MainPageViewModel : ObservableObject
         set => SetProperty(ref _transactionNote, value);
     }
 
+    public double MonthlyIncomeAmount
+    {
+        get => _monthlyIncomeAmount;
+        set => SetProperty(ref _monthlyIncomeAmount, value);
+    }
+
+    public string MonthlyIncomeEditorHintText
+    {
+        get => _monthlyIncomeEditorHintText;
+        private set => SetProperty(ref _monthlyIncomeEditorHintText, value);
+    }
+
     public string BillName
     {
         get => _billName;
@@ -232,22 +268,126 @@ public sealed class MainPageViewModel : ObservableObject
 
     public async Task InitializeAsync()
     {
-        if (_isInitialized)
+        if (_isInitialized || IsBusy)
         {
             return;
         }
 
-        _isInitialized = true;
-        await RunAsync(async () =>
+        var localToday = BudgetDateSelection.GetLocalToday();
+        var currentMonth = BudgetMonth.FromDate(localToday);
+        var initialized = await RunAsync(async () =>
         {
             await _repository.InitializeAsync();
-            await LoadMonthAsync();
+            var loadedMonth = await ReadMonthAsync(currentMonth);
+
+            _localToday = localToday;
+            _selectedMonth = currentMonth;
+            TransactionDate = ToLocalDateTimeOffset(localToday);
+            ApplyLoadedMonth(loadedMonth);
             StatusText = "Saved locally";
         }, "We couldn't open your local budget.");
+
+        _isInitialized = initialized;
+    }
+
+    /// <summary>
+    /// Refreshes local-date dependent state after the PC clock crosses midnight.
+    /// When the user is following the current month, a month boundary also loads
+    /// the new month. Manually browsed historical months remain selected.
+    /// </summary>
+    public async Task RefreshForLocalDateAsync()
+    {
+        var refreshedToday = BudgetDateSelection.GetLocalToday();
+        if (refreshedToday == _localToday || IsBusy)
+        {
+            return;
+        }
+
+        var previousToday = _localToday;
+        var previousLocalMonth = BudgetMonth.FromDate(previousToday);
+        var currentMonth = BudgetMonth.FromDate(refreshedToday);
+        var targetMonth = _selectedMonth == previousLocalMonth
+            ? currentMonth
+            : _selectedMonth;
+        var monthChanged = targetMonth != _selectedMonth;
+
+        var selectedTransactionDate = DateOnly.FromDateTime(TransactionDate.Date);
+        var transactionWasFollowingToday = selectedTransactionDate == previousToday;
+        var refreshedTransactionDate = transactionWasFollowingToday
+            ? refreshedToday
+            : monthChanged
+                ? BudgetDateSelection.MoveToMonth(selectedTransactionDate, targetMonth)
+                : selectedTransactionDate;
+
+        if (monthChanged && _isInitialized)
+        {
+            await RunAsync(async () =>
+            {
+                var loadedMonth = await ReadMonthAsync(targetMonth);
+
+                _localToday = refreshedToday;
+                _selectedMonth = targetMonth;
+                TransactionDate = ToLocalDateTimeOffset(refreshedTransactionDate);
+                ApplyLoadedMonth(loadedMonth);
+            }, "We couldn't load the new local month.");
+            return;
+        }
+
+        _localToday = refreshedToday;
+        if (monthChanged)
+        {
+            _selectedMonth = targetMonth;
+        }
+        TransactionDate = ToLocalDateTimeOffset(refreshedTransactionDate);
+
+        RefreshBills(_snapshot);
+        NotifyDateContextChanged();
+    }
+
+    public void UseTodayForTransaction()
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        // Resolve the PC date at click time. Leave _localToday unchanged here so
+        // RefreshForLocalDateAsync can still detect and process a midnight/month
+        // boundary if the timer has not fired yet.
+        TransactionDate = ToLocalDateTimeOffset(BudgetDateSelection.GetLocalToday());
+        NotifyDateContextChanged();
+    }
+
+    public void BeginEditBill(long id)
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        var bill = _snapshot.Bills.FirstOrDefault(item => item.Id == id);
+        if (bill is null)
+        {
+            SetError("That recurring bill is no longer available.");
+            return;
+        }
+
+        _billBeingEdited = bill;
+        BillName = bill.Name;
+        BillAmount = (double)bill.Amount;
+        BillDueDay = bill.DueDay;
+        SelectedBillCategory = BillCategoryOptions.FirstOrDefault(option => option.Id == bill.CategoryId);
+        NotifyBillEditorChanged();
     }
 
     public async Task SetDarkModeAsync(bool isDarkMode)
     {
+        if (IsBusy)
+        {
+            ThemeRequested?.Invoke(this, IsDarkMode);
+            return;
+        }
+
         IsDarkMode = isDarkMode;
         ThemeRequested?.Invoke(this, isDarkMode);
 
@@ -269,10 +409,18 @@ public sealed class MainPageViewModel : ObservableObject
         "Transaction deleted",
         "We couldn't delete that transaction.");
 
-    public async Task DeleteBillAsync(long id) => await RunAndReloadAsync(
-        () => _repository.DeleteRecurringBillAsync(id),
-        "Bill deleted",
-        "We couldn't delete that bill.");
+    public async Task DeleteBillAsync(long id)
+    {
+        var deleted = await RunAndReloadAsync(
+            () => _repository.DeleteRecurringBillAsync(id),
+            "Bill deleted",
+            "We couldn't delete that bill.");
+
+        if (deleted && _billBeingEdited?.Id == id)
+        {
+            ResetBillForm();
+        }
+    }
 
     public async Task DeleteGoalAsync(long id) => await RunAndReloadAsync(
         () => _repository.DeleteSavingsGoalAsync(id),
@@ -291,48 +439,83 @@ public sealed class MainPageViewModel : ObservableObject
         StatusText = "Transactions exported";
     }, "We couldn't export the transactions.");
 
-    public async Task ImportCsvAsync(string path) => await RunAsync(async () =>
+    public async Task ImportCsvAsync(string path)
     {
-        var result = await _repository.ImportTransactionsCsvAsync(path);
-        await LoadMonthAsync();
-        StatusText = $"Imported {result.ImportedCount}; skipped {result.SkippedCount}";
-    }, "We couldn't import that CSV file.");
-
-    private async Task ChangeMonthAsync(BudgetMonth month)
-    {
-        _selectedMonth = month;
-        TransactionDate = DefaultTransactionDate(month);
-        await RunAsync(LoadMonthAsync, "We couldn't load that month.");
-    }
-
-    private async Task LoadMonthAsync()
-    {
-        _snapshot = await _repository.LoadAsync(_selectedMonth);
-        ApplySnapshot(_snapshot);
-        await LoadTrendAsync();
-    }
-
-    private async Task LoadTrendAsync()
-    {
-        MonthlyTrend.Clear();
-        var month = _selectedMonth;
-        var snapshots = new List<BudgetSnapshot>();
-
-        for (var index = 0; index < 6; index++)
+        CsvImportResult? importResult = null;
+        var imported = await RunAndReloadAsync(async () =>
         {
-            snapshots.Add(month == _selectedMonth ? _snapshot : await _repository.LoadAsync(month));
-            month = month.Previous;
+            importResult = await _repository.ImportTransactionsCsvAsync(path);
+        }, "Transactions imported", "We couldn't import that CSV file.");
+
+        if (imported && !StatusIsError && importResult is not null)
+        {
+            StatusText = $"Imported {importResult.ImportedCount}; skipped {importResult.SkippedCount}";
+        }
+    }
+
+    private async Task ChangeToCurrentMonthAsync()
+    {
+        var localToday = BudgetDateSelection.GetLocalToday();
+        await ChangeMonthAsync(BudgetMonth.FromDate(localToday), localToday);
+    }
+
+    private async Task ChangeMonthAsync(BudgetMonth month, DateOnly? resolvedLocalToday = null)
+    {
+        if (IsBusy)
+        {
+            return;
         }
 
-        foreach (var snapshot in snapshots.AsEnumerable().Reverse())
+        var localToday = resolvedLocalToday ?? BudgetDateSelection.GetLocalToday();
+        var selectedDate = DateOnly.FromDateTime(TransactionDate.Date);
+        var targetTransactionDate = month.Contains(localToday)
+            ? localToday
+            : BudgetDateSelection.MoveToMonth(selectedDate, month);
+
+        await RunAsync(async () =>
+        {
+            var loadedMonth = await ReadMonthAsync(month);
+
+            _localToday = localToday;
+            _selectedMonth = month;
+            TransactionDate = ToLocalDateTimeOffset(targetTransactionDate);
+            ApplyLoadedMonth(loadedMonth);
+        }, "We couldn't load that month.");
+    }
+
+    private async Task<LoadedMonth> ReadMonthAsync(BudgetMonth selectedMonth)
+    {
+        var selectedSnapshot = await _repository.LoadAsync(selectedMonth);
+        var month = selectedMonth;
+        var snapshots = new List<BudgetSnapshot> { selectedSnapshot };
+
+        for (var index = 1; index < 6; index++)
+        {
+            if (month.Year == 1 && month.Month == 1)
+            {
+                break;
+            }
+
+            month = month.Previous;
+            snapshots.Add(await _repository.LoadAsync(month));
+        }
+
+        return new LoadedMonth(selectedSnapshot, snapshots.AsEnumerable().Reverse().ToArray());
+    }
+
+    private void ApplyLoadedMonth(LoadedMonth loadedMonth)
+    {
+        _snapshot = loadedMonth.Snapshot;
+        ApplySnapshot(_snapshot);
+        Replace(MonthlyTrend, loadedMonth.TrendSnapshots.Select(snapshot =>
         {
             var summary = BudgetCalculator.Calculate(snapshot);
-            MonthlyTrend.Add(new MonthlyTrendRow(
+            return new MonthlyTrendRow(
                 new DateTime(snapshot.Month.Year, snapshot.Month.Month, 1).ToString("MMM", CultureInfo.CurrentCulture),
                 FormatMoney(summary.Income),
                 FormatMoney(summary.Spent),
-                FormatMoney(summary.Saved)));
-        }
+                FormatMoney(summary.Saved));
+        }));
     }
 
     private void ApplySnapshot(BudgetSnapshot snapshot)
@@ -343,6 +526,11 @@ public sealed class MainPageViewModel : ObservableObject
         ThemeRequested?.Invoke(this, IsDarkMode);
 
         IncomeText = FormatMoney(summary.Income);
+        MonthlyIncomeAmount = (double)summary.Income;
+        var incomeAdjustment = MonthlyIncomePlanner.Plan(snapshot.Transactions, summary.Income);
+        MonthlyIncomeEditorHintText = incomeAdjustment.OtherIncomeTotal > 0m
+            ? $"{FormatMoney(incomeAdjustment.OtherIncomeTotal)} is recorded in other income entries and will stay untouched."
+            : "Set the monthly total here; other income entries will stay untouched.";
         PlannedText = FormatMoney(summary.Planned);
         SpentText = FormatMoney(summary.Spent);
         SavedText = FormatMoney(summary.Saved);
@@ -361,7 +549,9 @@ public sealed class MainPageViewModel : ObservableObject
             .Select(category => new CategoryOption(category.Id, category.Name, category.Kind)));
         Replace(BillCategoryOptions, CategoryOptions.Where(option => option.Kind == CategoryKind.Expense));
         UpdateTransactionCategoryOptions();
-        SelectedBillCategory = BillCategoryOptions.FirstOrDefault();
+        SelectedBillCategory = _billBeingEdited is null
+            ? BillCategoryOptions.FirstOrDefault()
+            : BillCategoryOptions.FirstOrDefault(option => option.Id == _billBeingEdited.CategoryId);
 
         Replace(CategoryRows, summary.Categories
             .Where(progress => !progress.Category.IsArchived && progress.Category.Kind != CategoryKind.Income)
@@ -387,17 +577,7 @@ public sealed class MainPageViewModel : ObservableObject
                 FormatSignedMoney(transaction),
                 transaction.Type is TransactionType.Expense ? "Expense" : "Positive")));
 
-        Replace(Bills, snapshot.Bills
-            .Where(bill => bill.IsActive)
-            .Select(bill => (Bill: bill, DueDate: RecurringDateCalculator.GetDueDate(bill, snapshot.Month)))
-            .Where(item => item.DueDate is not null)
-            .OrderBy(item => item.DueDate)
-            .Select(item => new BillRow(
-                item.Bill.Id,
-                item.Bill.Name,
-                $"Due {item.DueDate!.Value:dd MMM}",
-                snapshot.Categories.FirstOrDefault(category => category.Id == item.Bill.CategoryId)?.Name ?? "Uncategorised",
-                FormatMoney(item.Bill.Amount))));
+        RefreshBills(snapshot);
 
         Replace(Goals, snapshot.Goals
             .OrderBy(goal => goal.TargetDate)
@@ -415,9 +595,18 @@ public sealed class MainPageViewModel : ObservableObject
 
     private async Task SavePlanAsync()
     {
-        var allocations = CategoryRows
-            .Select(row => new BudgetAllocation(row.CategoryId, _selectedMonth, ToMoney(Math.Max(0d, row.PlannedAmount))))
-            .ToArray();
+        var allocations = new List<BudgetAllocation>(CategoryRows.Count);
+        foreach (var row in CategoryRows)
+        {
+            if (!double.IsFinite(row.PlannedAmount)
+                || !TryToMoney(Math.Max(0d, row.PlannedAmount), out var plannedAmount))
+            {
+                SetError($"Enter a valid planned amount for {row.Name}.");
+                return;
+            }
+
+            allocations.Add(new BudgetAllocation(row.CategoryId, _selectedMonth, plannedAmount));
+        }
 
         await RunAndReloadAsync(
             () => _repository.SaveAllocationsAsync(_selectedMonth, allocations),
@@ -427,7 +616,9 @@ public sealed class MainPageViewModel : ObservableObject
 
     private async Task AddTransactionAsync()
     {
-        if (TransactionAmount <= 0d || SelectedTransactionType is null)
+        if (!TryToMoney(TransactionAmount, out var transactionAmount)
+            || transactionAmount <= 0m
+            || SelectedTransactionType is null)
         {
             SetError("Enter an amount greater than zero and choose a transaction type.");
             return;
@@ -440,53 +631,124 @@ public sealed class MainPageViewModel : ObservableObject
             return;
         }
 
+        var transactionDate = DateOnly.FromDateTime(TransactionDate.Date);
+        var transactionMonth = BudgetMonth.FromDate(transactionDate);
         var transaction = new BudgetTransaction(
             Guid.NewGuid(),
-            DateOnly.FromDateTime(TransactionDate.Date),
+            transactionDate,
             SelectedTransactionType.Type,
-            ToMoney(TransactionAmount),
+            transactionAmount,
             SelectedTransactionType.Type is TransactionType.Income or TransactionType.Transfer
                 ? null
                 : SelectedTransactionCategory?.Id,
             TransactionNote.Trim());
 
-        await RunAndReloadAsync(
+        var changedMonth = transactionMonth != _selectedMonth;
+        var saved = await RunAndReloadAsync(
             () => _repository.UpsertTransactionAsync(transaction),
-            "Transaction added",
-            "We couldn't save that transaction.");
+            changedMonth
+                ? $"Transaction added; now viewing {FormatMonth(transactionMonth)}"
+                : "Transaction added",
+            "We couldn't save that transaction.",
+            transactionMonth);
 
-        TransactionAmount = 0d;
-        TransactionNote = string.Empty;
+        if (saved)
+        {
+            TransactionAmount = 0d;
+            TransactionNote = string.Empty;
+        }
+    }
+
+    private async Task SaveMonthlyIncomeAsync()
+    {
+        if (!TryToMoney(MonthlyIncomeAmount, out var desiredTotal))
+        {
+            SetError("Enter a monthly income total of zero or more.");
+            return;
+        }
+
+        MonthlyIncomeAdjustment adjustment;
+        try
+        {
+            adjustment = MonthlyIncomePlanner.Plan(_snapshot.Transactions, desiredTotal);
+        }
+        catch (ArgumentOutOfRangeException exception)
+            when (exception.ParamName == "desiredIncomeTotal")
+        {
+            SetError("Monthly income cannot be lower than your separately recorded income entries.");
+            return;
+        }
+
+        if (adjustment.ManagedAmount == 0m && adjustment.ManagedTransaction is null)
+        {
+            StatusIsError = false;
+            StatusText = "Monthly income already matches your other income entries";
+            return;
+        }
+
+        await RunAndReloadAsync(async () =>
+        {
+            if (adjustment.ShouldDeleteManaged)
+            {
+                await _repository.DeleteTransactionAsync(adjustment.ManagedTransaction!.Id);
+                return;
+            }
+
+            var transaction = new BudgetTransaction(
+                adjustment.ManagedTransaction?.Id ?? Guid.NewGuid(),
+                adjustment.ManagedTransaction?.Date
+                    ?? BudgetDateSelection.GetDefaultDate(_selectedMonth, _localToday),
+                TransactionType.Income,
+                adjustment.ManagedAmount,
+                null,
+                MonthlyIncomePlanner.ManagedTransactionNote);
+            await _repository.UpsertTransactionAsync(transaction);
+        },
+        "Monthly income saved",
+        "We couldn't save your monthly income.");
     }
 
     private async Task AddBillAsync()
     {
-        if (string.IsNullOrWhiteSpace(BillName) || BillAmount <= 0d || BillDueDay is < 1d or > 31d)
+        if (string.IsNullOrWhiteSpace(BillName)
+            || !TryToMoney(BillAmount, out var billAmount)
+            || billAmount <= 0m
+            || !double.IsFinite(BillDueDay)
+            || BillDueDay != Math.Truncate(BillDueDay)
+            || BillDueDay is < 1d or > 31d)
         {
             SetError("Enter a bill name, an amount greater than zero, and a due day from 1 to 31.");
             return;
         }
 
+        var originalBill = _billBeingEdited;
         var bill = new RecurringBill(
-            0,
+            originalBill?.Id ?? 0,
             BillName.Trim(),
-            ToMoney(BillAmount),
+            billAmount,
             Convert.ToInt32(BillDueDay),
-            SelectedBillCategory?.Id);
+            SelectedBillCategory?.Id,
+            originalBill?.IsActive ?? true,
+            originalBill?.StartDate,
+            originalBill?.EndDate);
 
-        await RunAndReloadAsync(
+        var saved = await RunAndReloadAsync(
             () => _repository.UpsertRecurringBillAsync(bill),
-            "Recurring bill added",
+            originalBill is null ? "Recurring bill added" : "Recurring bill updated",
             "We couldn't save that recurring bill.");
 
-        BillName = string.Empty;
-        BillAmount = 0d;
-        BillDueDay = 1d;
+        if (saved)
+        {
+            ResetBillForm();
+        }
     }
 
     private async Task AddGoalAsync()
     {
-        if (string.IsNullOrWhiteSpace(GoalName) || GoalTargetAmount <= 0d || GoalCurrentAmount < 0d)
+        if (string.IsNullOrWhiteSpace(GoalName)
+            || !TryToMoney(GoalTargetAmount, out var targetAmount)
+            || targetAmount <= 0m
+            || !TryToMoney(GoalCurrentAmount, out var currentAmount))
         {
             SetError("Enter a goal name and a target amount greater than zero.");
             return;
@@ -495,18 +757,21 @@ public sealed class MainPageViewModel : ObservableObject
         var goal = new SavingsGoal(
             0,
             GoalName.Trim(),
-            ToMoney(GoalTargetAmount),
-            ToMoney(GoalCurrentAmount),
+            targetAmount,
+            currentAmount,
             DateOnly.FromDateTime(GoalTargetDate.Date));
 
-        await RunAndReloadAsync(
+        var saved = await RunAndReloadAsync(
             () => _repository.UpsertSavingsGoalAsync(goal),
             "Savings goal added",
             "We couldn't save that savings goal.");
 
-        GoalName = string.Empty;
-        GoalTargetAmount = 0d;
-        GoalCurrentAmount = 0d;
+        if (saved)
+        {
+            GoalName = string.Empty;
+            GoalTargetAmount = 0d;
+            GoalCurrentAmount = 0d;
+        }
     }
 
     private async Task SaveSettingsAsync()
@@ -522,29 +787,52 @@ public sealed class MainPageViewModel : ObservableObject
 
     private async Task SeedDemoDataAsync()
     {
-        await RunAsync(async () =>
+        var added = false;
+        var saved = await RunAndReloadAsync(async () =>
         {
-            var added = await _repository.SeedDemoDataAsync(_selectedMonth);
-            await LoadMonthAsync();
+            added = await _repository.SeedDemoDataAsync(_selectedMonth);
+        }, "Example budget loaded", "We couldn't load the example budget.");
+
+        if (saved && !StatusIsError)
+        {
             StatusText = added ? "Example budget loaded" : "This month already has data";
-        }, "We couldn't load the example budget.");
+        }
     }
 
-    private async Task RunAndReloadAsync(Func<Task> action, string successMessage, string errorMessage)
+    private async Task<bool> RunAndReloadAsync(
+        Func<Task> action,
+        string successMessage,
+        string errorMessage,
+        BudgetMonth? monthToShow = null)
     {
-        await RunAsync(async () =>
+        var targetMonth = monthToShow ?? _selectedMonth;
+        var writeSucceeded = false;
+        var operationCompleted = await RunAsync(async () =>
         {
             await action();
-            await LoadMonthAsync();
-            StatusText = successMessage;
+            writeSucceeded = true;
+
+            try
+            {
+                var loadedMonth = await ReadMonthAsync(targetMonth);
+                _selectedMonth = targetMonth;
+                ApplyLoadedMonth(loadedMonth);
+                StatusText = successMessage;
+            }
+            catch (Exception exception)
+            {
+                SetError($"{successMessage}. Your change was saved, but the screen could not refresh. {exception.Message}");
+            }
         }, errorMessage);
+
+        return operationCompleted && writeSucceeded;
     }
 
-    private async Task RunAsync(Func<Task> action, string errorMessage)
+    private async Task<bool> RunAsync(Func<Task> action, string errorMessage)
     {
         if (IsBusy)
         {
-            return;
+            return false;
         }
 
         IsBusy = true;
@@ -552,15 +840,71 @@ public sealed class MainPageViewModel : ObservableObject
         try
         {
             await action();
+            return true;
         }
         catch (Exception exception)
         {
             SetError($"{errorMessage} {exception.Message}");
+            return false;
         }
         finally
         {
             IsBusy = false;
         }
+    }
+
+    private void RefreshBills(BudgetSnapshot snapshot)
+    {
+        var upcomingBills = RecurringDateCalculator.GetUpcomingBills(snapshot.Bills, _localToday);
+        Replace(Bills, upcomingBills.Select(item => new BillRow(
+            item.Bill.Id,
+            item.Bill.Name,
+            $"Due {item.DueDate:dd MMM yyyy}",
+            snapshot.Categories.FirstOrDefault(category => category.Id == item.Bill.CategoryId)?.Name ?? "Uncategorised",
+            FormatMoney(item.Bill.Amount),
+            FormatCountdown(item.DaysUntilDue))));
+        OnPropertyChanged(nameof(EmptyBillsVisibility));
+    }
+
+    private void ResetBillForm()
+    {
+        _billBeingEdited = null;
+        BillName = string.Empty;
+        BillAmount = 0d;
+        BillDueDay = 1d;
+        SelectedBillCategory = BillCategoryOptions.FirstOrDefault();
+        NotifyBillEditorChanged();
+    }
+
+    private void NotifyBillEditorChanged()
+    {
+        OnPropertyChanged(nameof(IsEditingBill));
+        OnPropertyChanged(nameof(BillFormTitle));
+        OnPropertyChanged(nameof(BillSubmitText));
+    }
+
+    private void NotifyDateContextChanged()
+    {
+        OnPropertyChanged(nameof(SelectedMonthText));
+        OnPropertyChanged(nameof(TodayHeadingText));
+        OnPropertyChanged(nameof(TodayContextText));
+    }
+
+    private bool CanRunCommand() => !IsBusy;
+
+    private void NotifyCommandCanExecuteChanged()
+    {
+        PreviousMonthCommand.NotifyCanExecuteChanged();
+        NextMonthCommand.NotifyCanExecuteChanged();
+        CurrentMonthCommand.NotifyCanExecuteChanged();
+        SavePlanCommand.NotifyCanExecuteChanged();
+        AddTransactionCommand.NotifyCanExecuteChanged();
+        SaveMonthlyIncomeCommand.NotifyCanExecuteChanged();
+        AddBillCommand.NotifyCanExecuteChanged();
+        CancelBillEditCommand.NotifyCanExecuteChanged();
+        AddGoalCommand.NotifyCanExecuteChanged();
+        SaveSettingsCommand.NotifyCanExecuteChanged();
+        SeedDemoDataCommand.NotifyCanExecuteChanged();
     }
 
     private void SetError(string message)
@@ -571,17 +915,44 @@ public sealed class MainPageViewModel : ObservableObject
 
     private string FormatMoney(decimal amount) => $"{CurrencyPrefix(CurrencyCode)} {amount:N2}";
 
-    private static decimal ToMoney(double amount) => decimal.Round(
-        Convert.ToDecimal(amount),
-        2,
-        MidpointRounding.AwayFromZero);
-
-    private static DateTimeOffset DefaultTransactionDate(BudgetMonth month)
+    private static bool TryToMoney(double amount, out decimal money)
     {
-        var day = Math.Min(DateTime.Today.Day, DateTime.DaysInMonth(month.Year, month.Month));
-        var localDate = new DateTime(month.Year, month.Month, day, 12, 0, 0, DateTimeKind.Unspecified);
+        money = 0m;
+        if (!double.IsFinite(amount) || amount < 0d)
+        {
+            return false;
+        }
+
+        try
+        {
+            money = decimal.Round(
+                Convert.ToDecimal(amount),
+                2,
+                MidpointRounding.AwayFromZero);
+            return true;
+        }
+        catch (OverflowException)
+        {
+            return false;
+        }
+    }
+
+    private static string FormatMonth(BudgetMonth month) =>
+        new DateTime(month.Year, month.Month, 1).ToString("MMMM yyyy", CultureInfo.CurrentCulture);
+
+    private static DateTimeOffset ToLocalDateTimeOffset(DateOnly date)
+    {
+        var localDate = date.ToDateTime(new TimeOnly(12, 0), DateTimeKind.Unspecified);
         return new DateTimeOffset(localDate, TimeZoneInfo.Local.GetUtcOffset(localDate));
     }
+
+    private static string FormatCountdown(int daysUntilDue) => daysUntilDue switch
+    {
+        < 0 => $"Overdue by {Math.Abs(daysUntilDue)} day{(daysUntilDue == -1 ? string.Empty : "s")}",
+        0 => "Due today",
+        1 => "Due tomorrow",
+        _ => $"Due in {daysUntilDue} days",
+    };
 
     private void UpdateTransactionCategoryOptions()
     {
@@ -636,7 +1007,7 @@ public sealed class MainPageViewModel : ObservableObject
 
     private void NotifyDashboardChanged()
     {
-        OnPropertyChanged(nameof(SelectedMonthText));
+        NotifyDateContextChanged();
         OnPropertyChanged(nameof(IncomeText));
         OnPropertyChanged(nameof(PlannedText));
         OnPropertyChanged(nameof(SpentText));
@@ -650,7 +1021,12 @@ public sealed class MainPageViewModel : ObservableObject
         OnPropertyChanged(nameof(EmptyTransactionsVisibility));
         OnPropertyChanged(nameof(EmptyBillsVisibility));
         OnPropertyChanged(nameof(EmptyGoalsVisibility));
+        NotifyBillEditorChanged();
     }
+
+    private sealed record LoadedMonth(
+        BudgetSnapshot Snapshot,
+        IReadOnlyList<BudgetSnapshot> TrendSnapshots);
 }
 
 public sealed record TransactionTypeOption(TransactionType Type, string Label);
@@ -705,7 +1081,13 @@ public sealed record TransactionRow(
     string AmountText,
     string Tone);
 
-public sealed record BillRow(long Id, string Name, string DueText, string CategoryName, string AmountText);
+public sealed record BillRow(
+    long Id,
+    string Name,
+    string DueText,
+    string CategoryName,
+    string AmountText,
+    string CountdownText);
 
 public sealed record GoalRow(
     long Id,

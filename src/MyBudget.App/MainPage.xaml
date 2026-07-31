@@ -8,6 +8,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Background="{ThemeResource AppBackgroundBrush}"
     Loaded="Page_Loaded"
+    Unloaded="Page_Unloaded"
     mc:Ignorable="d">
 
     <NavigationView
@@ -188,21 +189,108 @@
             </Grid>
 
             <!-- Overview -->
-            <ScrollViewer x:Name="OverviewView" Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Margin="30,4,34,28" Spacing="18">
+            <ScrollViewer x:Name="OverviewView" Grid.Row="1" HorizontalScrollBarVisibility="Auto">
+                <StackPanel MinWidth="1040" Margin="30,4,34,28" Spacing="18">
+                    <Border
+                        Padding="18,14"
+                        AutomationProperties.Name="Today's local budget date">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Offset="0" Color="#102725" />
+                                <GradientStop Offset="0.58" Color="#0D5D52" />
+                                <GradientStop Offset="1" Color="#0B8F75" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Border.CornerRadius>18</Border.CornerRadius>
+                        <Grid ColumnSpacing="18">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border
+                                Width="42"
+                                Height="42"
+                                VerticalAlignment="Center"
+                                Background="#26FFFFFF"
+                                CornerRadius="12">
+                                <SymbolIcon
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Foreground="White"
+                                    Symbol="Calendar" />
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                <TextBlock
+                                    FontSize="18"
+                                    FontWeight="SemiBold"
+                                    Foreground="White"
+                                    Text="{x:Bind ViewModel.TodayHeadingText, Mode=OneWay}" />
+                                <TextBlock
+                                    Foreground="#DDFCF4"
+                                    Text="{x:Bind ViewModel.TodayContextText, Mode=OneWay}" />
+                            </StackPanel>
+                            <Button
+                                Grid.Column="2"
+                                VerticalAlignment="Center"
+                                AutomationProperties.Name="Add a money entry for today"
+                                Click="GoToTransactions_Click"
+                                Content="Add today&apos;s entry"
+                                CornerRadius="10"
+                                Background="#F2FFFFFF"
+                                Foreground="#102725"
+                                Padding="16,9" />
+                        </Grid>
+                    </Border>
+
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="1.35*" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Border Style="{StaticResource CompactCardStyle}">
-                            <StackPanel Spacing="8">
-                                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="INCOME" />
-                                <TextBlock FontSize="23" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" Text="{x:Bind ViewModel.IncomeText, Mode=OneWay}" />
-                                <TextBlock FontSize="12" Foreground="{ThemeResource AppAccentBrush}" Text="Money in" />
+                        <Border BorderBrush="{ThemeResource AppAccentBrush}" Style="{StaticResource CompactCardStyle}">
+                            <StackPanel Spacing="7">
+                                <Grid>
+                                    <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="MONTHLY INCOME" />
+                                    <FontIcon
+                                        HorizontalAlignment="Right"
+                                        FontSize="12"
+                                        Foreground="{ThemeResource AppAccentBrush}"
+                                        Glyph="&#xE70F;" />
+                                </Grid>
+                                <TextBlock
+                                    FontSize="21"
+                                    FontWeight="SemiBold"
+                                    Foreground="{ThemeResource AppTextPrimaryBrush}"
+                                    Text="{x:Bind ViewModel.IncomeText, Mode=OneWay}" />
+                                <Grid ColumnSpacing="6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <NumberBox
+                                        x:Name="MonthlyIncomeNumberBox"
+                                        AutomationProperties.Name="Monthly income amount"
+                                        Minimum="0"
+                                        PlaceholderText="0.00"
+                                        SpinButtonPlacementMode="Hidden"
+                                        Value="{x:Bind ViewModel.MonthlyIncomeAmount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <Button
+                                        Grid.Column="1"
+                                        VerticalAlignment="Stretch"
+                                        Click="SaveMonthlyIncome_Click"
+                                        Content="Update"
+                                        CornerRadius="8" />
+                                </Grid>
+                                <TextBlock
+                                    FontSize="11"
+                                    Foreground="{ThemeResource AppTextSecondaryBrush}"
+                                    Text="{x:Bind ViewModel.MonthlyIncomeEditorHintText, Mode=OneWay}"
+                                    TextTrimming="CharacterEllipsis"
+                                    ToolTipService.ToolTip="{x:Bind ViewModel.MonthlyIncomeEditorHintText, Mode=OneWay}" />
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="1" Style="{StaticResource CompactCardStyle}">
@@ -314,6 +402,11 @@
                                                 <StackPanel>
                                                     <TextBlock FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" Text="{Binding Name}" />
                                                     <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{Binding DueText}" />
+                                                    <TextBlock
+                                                        FontSize="11"
+                                                        FontWeight="SemiBold"
+                                                        Foreground="{ThemeResource AppAccentBrush}"
+                                                        Text="{Binding CountdownText}" />
                                                 </StackPanel>
                                                 <TextBlock Grid.Column="1" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" Text="{Binding AmountText}" />
                                             </Grid>
@@ -386,9 +479,40 @@
                     <Grid.ColumnDefinitions><ColumnDefinition Width="370" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                     <Border Style="{StaticResource CardStyle}" VerticalAlignment="Top">
                         <StackPanel Spacing="12">
-                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Add a transaction" />
+                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Daily money entry" />
+                            <Border
+                                Padding="12"
+                                Background="{ThemeResource AppAccentSoftBrush}"
+                                BorderBrush="{ThemeResource AppAccentBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12">
+                                <Grid ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Spacing="2">
+                                        <TextBlock
+                                            FontWeight="SemiBold"
+                                            Foreground="{ThemeResource AppTextPrimaryBrush}"
+                                            Text="{x:Bind ViewModel.TodayHeadingText, Mode=OneWay}" />
+                                        <TextBlock
+                                            FontSize="11"
+                                            Foreground="{ThemeResource AppTextSecondaryBrush}"
+                                            Text="New entries use this PC-local day by default." />
+                                    </StackPanel>
+                                    <Button
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        AutomationProperties.Name="Set transaction date to today"
+                                        Click="UseToday_Click"
+                                        Content="Use today" />
+                                </Grid>
+                            </Border>
                             <ComboBox Header="Type" DisplayMemberPath="Label" ItemsSource="{x:Bind ViewModel.TransactionTypes}" SelectedItem="{x:Bind ViewModel.SelectedTransactionType, Mode=TwoWay}" />
-                            <DatePicker Header="Date" Date="{x:Bind ViewModel.TransactionDate, Mode=TwoWay}" />
+                            <DatePicker
+                                Header="Date (editable for backdating)"
+                                Date="{x:Bind ViewModel.TransactionDate, Mode=TwoWay}" />
                             <NumberBox Header="Amount" Minimum="0" PlaceholderText="0.00" SpinButtonPlacementMode="Compact" Value="{x:Bind ViewModel.TransactionAmount, Mode=TwoWay}" />
                             <ComboBox Header="Category" DisplayMemberPath="Name" IsEnabled="{x:Bind ViewModel.IsTransactionCategoryEnabled, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.AvailableTransactionCategories}" SelectedItem="{x:Bind ViewModel.SelectedTransactionCategory, Mode=TwoWay}" />
                             <TextBox Header="Note" MaxLength="180" PlaceholderText="e.g. Groceries at the market" Text="{x:Bind ViewModel.TransactionNote, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
@@ -417,7 +541,7 @@
                                                 </StackPanel>
                                             </StackPanel>
                                             <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" Text="{Binding AmountText}" />
-                                            <Button Grid.Column="3" Tag="{Binding Id}" Click="DeleteTransaction_Click" ToolTipService.ToolTip="Delete transaction">
+                                            <Button Grid.Column="3" Tag="{Binding Id}" AutomationProperties.Name="Delete transaction" Click="DeleteTransaction_Click" ToolTipService.ToolTip="Delete transaction">
                                                 <SymbolIcon Symbol="Delete" />
                                             </Button>
                                         </Grid>
@@ -435,31 +559,74 @@
                     <Grid.ColumnDefinitions><ColumnDefinition Width="370" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                     <Border Style="{StaticResource CardStyle}" VerticalAlignment="Top">
                         <StackPanel Spacing="12">
-                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Add a recurring bill" />
+                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="{x:Bind ViewModel.BillFormTitle, Mode=OneWay}" />
+                            <TextBlock
+                                FontSize="12"
+                                Foreground="{ThemeResource AppTextSecondaryBrush}"
+                                Text="Create a schedule once, then see exactly how many days remain."
+                                TextWrapping="Wrap" />
                             <TextBox Header="Bill name" MaxLength="80" PlaceholderText="e.g. Internet" Text="{x:Bind ViewModel.BillName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                             <NumberBox Header="Monthly amount" Minimum="0" PlaceholderText="0.00" SpinButtonPlacementMode="Compact" Value="{x:Bind ViewModel.BillAmount, Mode=TwoWay}" />
                             <NumberBox Header="Due day" Minimum="1" Maximum="31" SmallChange="1" SpinButtonPlacementMode="Compact" Value="{x:Bind ViewModel.BillDueDay, Mode=TwoWay}" />
                             <ComboBox Header="Category" DisplayMemberPath="Name" ItemsSource="{x:Bind ViewModel.BillCategoryOptions}" SelectedItem="{x:Bind ViewModel.SelectedBillCategory, Mode=TwoWay}" />
-                            <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Style="{StaticResource PrimaryActionButtonStyle}" Command="{x:Bind ViewModel.AddBillCommand}" Content="Add recurring bill" />
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Button
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center"
+                                    Style="{StaticResource PrimaryActionButtonStyle}"
+                                    Command="{x:Bind ViewModel.AddBillCommand}"
+                                    Content="{x:Bind ViewModel.BillSubmitText, Mode=OneWay}" />
+                                <Button
+                                    x:Name="CancelBillEditButton"
+                                    Grid.Column="1"
+                                    Command="{x:Bind ViewModel.CancelBillEditCommand}"
+                                    Content="Cancel"
+                                    Visibility="Collapsed" />
+                            </Grid>
                             <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="A bill due on day 29–31 automatically moves to the last valid day in shorter months." />
                         </StackPanel>
                     </Border>
                     <Border Grid.Column="1" Style="{StaticResource CardStyle}">
                         <StackPanel Spacing="12">
-                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Upcoming this month" />
+                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Upcoming bills" />
                             <TextBlock Visibility="{x:Bind ViewModel.EmptyBillsVisibility, Mode=OneWay}" Style="{StaticResource SecondaryTextStyle}" Text="No recurring bills yet." />
                             <ListView ItemsSource="{x:Bind ViewModel.Bills}" SelectionMode="None">
                                 <ListView.ItemTemplate>
                                     <DataTemplate>
-                                        <Grid MinHeight="66" Padding="4,8" ColumnSpacing="12">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="150" /><ColumnDefinition Width="120" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <Grid MinHeight="72" Padding="4,8" ColumnSpacing="12">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="170" /><ColumnDefinition Width="120" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                             <StackPanel VerticalAlignment="Center">
                                                 <TextBlock FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" Text="{Binding Name}" />
                                                 <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{Binding CategoryName}" />
                                             </StackPanel>
-                                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource SecondaryTextStyle}" Text="{Binding DueText}" />
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                                                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{Binding DueText}" />
+                                                <Border
+                                                    HorizontalAlignment="Left"
+                                                    Padding="8,3"
+                                                    Background="{ThemeResource AppAccentSoftBrush}"
+                                                    CornerRadius="8">
+                                                    <TextBlock
+                                                        FontSize="11"
+                                                        FontWeight="SemiBold"
+                                                        Foreground="{ThemeResource AppTextPrimaryBrush}"
+                                                        Text="{Binding CountdownText}" />
+                                                </Border>
+                                            </StackPanel>
                                             <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" Text="{Binding AmountText}" />
-                                            <Button Grid.Column="3" Tag="{Binding Id}" Click="DeleteBill_Click" ToolTipService.ToolTip="Delete bill"><SymbolIcon Symbol="Delete" /></Button>
+                                            <StackPanel Grid.Column="3" VerticalAlignment="Center" Orientation="Horizontal" Spacing="4">
+                                                <Button
+                                                    Tag="{Binding Id}"
+                                                    AutomationProperties.Name="Edit recurring bill"
+                                                    Click="EditBill_Click"
+                                                    Content="Edit"
+                                                    ToolTipService.ToolTip="Edit bill" />
+                                                <Button Tag="{Binding Id}" AutomationProperties.Name="Delete recurring bill" Click="DeleteBill_Click" ToolTipService.ToolTip="Delete bill"><SymbolIcon Symbol="Delete" /></Button>
+                                            </StackPanel>
                                         </Grid>
                                     </DataTemplate>
                                 </ListView.ItemTemplate>
@@ -495,7 +662,7 @@
                                                     <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" Text="{Binding Name}" />
                                                     <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{Binding DueText}" />
                                                 </StackPanel>
-                                                <Button HorizontalAlignment="Right" Tag="{Binding Id}" Click="DeleteGoal_Click" ToolTipService.ToolTip="Delete goal"><SymbolIcon Symbol="Delete" /></Button>
+                                                <Button HorizontalAlignment="Right" Tag="{Binding Id}" AutomationProperties.Name="Delete savings goal" Click="DeleteGoal_Click" ToolTipService.ToolTip="Delete goal"><SymbolIcon Symbol="Delete" /></Button>
                                             </Grid>
                                             <ProgressBar Height="9" Maximum="100" Value="{Binding PercentComplete}" />
                                             <Grid>

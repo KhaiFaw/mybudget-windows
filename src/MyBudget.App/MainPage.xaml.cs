@@ -1,23 +1,30 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Dispatching;
 using MyBudget.App.ViewModels;
 using MyBudget.Infrastructure;
 using Windows.Storage.Pickers;
+using System.ComponentModel;
 
 namespace MyBudget.App;
 
 public sealed partial class MainPage : Page
 {
     private bool _isApplyingTheme;
+    private bool _isRefreshingLocalDate;
+    private DispatcherQueueTimer? _localDateRefreshTimer;
 
     public MainPageViewModel ViewModel { get; }
 
     public MainPage()
     {
-        var dataDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "KhaiFaw",
-            "MyBudget");
+        var configuredDataDirectory = Environment.GetEnvironmentVariable("MYBUDGET_DATA_DIRECTORY");
+        var dataDirectory = string.IsNullOrWhiteSpace(configuredDataDirectory)
+            ? Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "KhaiFaw",
+                "MyBudget")
+            : Path.GetFullPath(configuredDataDirectory);
         var databasePath = Path.Combine(dataDirectory, "mybudget.db");
 
         ViewModel = new MainPageViewModel(
@@ -26,13 +33,50 @@ public sealed partial class MainPage : Page
         ViewModel.ThemeRequested += ViewModel_ThemeRequested;
 
         InitializeComponent();
+        ViewModel.PropertyChanged += ViewModel_PropertyChanged;
     }
 
     private async void Page_Loaded(object sender, RoutedEventArgs e)
     {
         UpdatePaneFooter(RootNavigation.IsPaneOpen);
+        UpdateBillEditState();
         ShowSection("Overview");
         await ViewModel.InitializeAsync();
+        StartLocalDateRefreshTimer();
+    }
+
+    private void Page_Unloaded(object sender, RoutedEventArgs e) =>
+        _localDateRefreshTimer?.Stop();
+
+    private void StartLocalDateRefreshTimer()
+    {
+        if (_localDateRefreshTimer is null)
+        {
+            _localDateRefreshTimer = DispatcherQueue.CreateTimer();
+            _localDateRefreshTimer.Interval = TimeSpan.FromMinutes(1);
+            _localDateRefreshTimer.IsRepeating = true;
+            _localDateRefreshTimer.Tick += LocalDateRefreshTimer_Tick;
+        }
+
+        _localDateRefreshTimer.Start();
+    }
+
+    private async void LocalDateRefreshTimer_Tick(DispatcherQueueTimer sender, object args)
+    {
+        if (_isRefreshingLocalDate)
+        {
+            return;
+        }
+
+        _isRefreshingLocalDate = true;
+        try
+        {
+            await ViewModel.RefreshForLocalDateAsync();
+        }
+        finally
+        {
+            _isRefreshingLocalDate = false;
+        }
     }
 
     private void RootNavigation_PaneClosing(
@@ -92,6 +136,36 @@ public sealed partial class MainPage : Page
 
     private void GoToBills_Click(object sender, RoutedEventArgs e) => NavigateTo("Bills");
 
+    private void GoToTransactions_Click(object sender, RoutedEventArgs e) => NavigateTo("Transactions");
+
+    private void UseToday_Click(object sender, RoutedEventArgs e) => ViewModel.UseTodayForTransaction();
+
+    private async void SaveMonthlyIncome_Click(object sender, RoutedEventArgs e)
+    {
+        // NumberBox commits typed text after focus leaves its internal TextBox.
+        // Yield once so a single Update click saves the value the user can see.
+        await Task.Yield();
+        await ViewModel.SaveMonthlyIncomeCommand.ExecuteAsync(null);
+    }
+
+    private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(MainPageViewModel.IsEditingBill))
+        {
+            UpdateBillEditState();
+        }
+    }
+
+    private void UpdateBillEditState()
+    {
+        if (CancelBillEditButton is not null)
+        {
+            CancelBillEditButton.Visibility = ViewModel.IsEditingBill
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+    }
+
     private async void ThemeToggle_Toggled(object sender, RoutedEventArgs e)
     {
         if (!_isApplyingTheme && sender is ToggleSwitch toggle)
@@ -139,6 +213,15 @@ public sealed partial class MainPage : Page
         if (sender is Button { Tag: long id })
         {
             await ViewModel.DeleteBillAsync(id);
+        }
+    }
+
+    private void EditBill_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: long id })
+        {
+            ViewModel.BeginEditBill(id);
+            NavigateTo("Bills");
         }
     }
 

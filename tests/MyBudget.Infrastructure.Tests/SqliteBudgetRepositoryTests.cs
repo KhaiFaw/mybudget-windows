@@ -187,6 +187,52 @@ public sealed class SqliteBudgetRepositoryTests
     }
 
     [TestMethod]
+    public async Task Upserts_CanChangeIncomeAndEveryEditableBillField()
+    {
+        var incomeId = Guid.NewGuid();
+        await _repository.UpsertTransactionAsync(new BudgetTransaction(
+            incomeId,
+            new DateOnly(2026, 7, 1),
+            TransactionType.Income,
+            3_000m,
+            null,
+            "Original income"));
+        await _repository.UpsertTransactionAsync(new BudgetTransaction(
+            incomeId,
+            new DateOnly(2026, 7, 2),
+            TransactionType.Income,
+            3_500m,
+            null,
+            "Updated income"));
+
+        await _repository.UpsertRecurringBillAsync(new RecurringBill(
+            51,
+            "Internet",
+            100m,
+            10,
+            4));
+        var updatedBill = new RecurringBill(
+            51,
+            "Fibre internet",
+            129.90m,
+            31,
+            1,
+            IsActive: false,
+            StartDate: new DateOnly(2026, 8, 1),
+            EndDate: new DateOnly(2027, 7, 31));
+        await _repository.UpsertRecurringBillAsync(updatedBill);
+
+        var snapshot = await _repository.LoadAsync(July);
+
+        var income = Assert.ContainsSingle(snapshot.Transactions);
+        Assert.AreEqual(incomeId, income.Id);
+        Assert.AreEqual(new DateOnly(2026, 7, 2), income.Date);
+        Assert.AreEqual(3_500m, income.Amount);
+        Assert.AreEqual("Updated income", income.Note);
+        Assert.AreEqual(updatedBill, Assert.ContainsSingle(snapshot.Bills));
+    }
+
+    [TestMethod]
     public async Task Writes_RejectMismatchedTransactionCategoryAndInvalidBillRange()
     {
         await Assert.ThrowsAsync<ArgumentException>(() => _repository.UpsertTransactionAsync(

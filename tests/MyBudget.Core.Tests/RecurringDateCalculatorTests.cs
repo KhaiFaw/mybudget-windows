@@ -79,6 +79,90 @@ public sealed class RecurringDateCalculatorTests
             () => RecurringDateCalculator.GetDueDate(bill, new BudgetMonth(2026, 7)));
     }
 
+    [TestMethod]
+    public void GetNextDueDate_CrossesMonthAndYearBoundaries()
+    {
+        var bill = Bill() with { DueDay = 5 };
+
+        Assert.AreEqual(
+            new DateOnly(2027, 1, 5),
+            RecurringDateCalculator.GetNextDueDate(bill, new DateOnly(2026, 12, 31)));
+    }
+
+    [TestMethod]
+    public void GetNextDueDate_ClampsEndOfMonthAndIncludesToday()
+    {
+        var bill = Bill() with { DueDay = 31 };
+
+        Assert.AreEqual(
+            new DateOnly(2026, 2, 28),
+            RecurringDateCalculator.GetNextDueDate(bill, new DateOnly(2026, 2, 28)));
+        Assert.AreEqual(
+            new DateOnly(2024, 2, 29),
+            RecurringDateCalculator.GetNextDueDate(bill, new DateOnly(2024, 2, 1)));
+    }
+
+    [TestMethod]
+    public void GetNextDueDate_RespectsStartAndEndDatesAcrossMonths()
+    {
+        var startsAfterThisMonthsDueDay = Bill() with
+        {
+            DueDay = 15,
+            StartDate = new DateOnly(2026, 2, 20),
+        };
+        var endsBeforeClampedDueDay = Bill() with
+        {
+            DueDay = 31,
+            EndDate = new DateOnly(2026, 2, 27),
+        };
+
+        Assert.AreEqual(
+            new DateOnly(2026, 3, 15),
+            RecurringDateCalculator.GetNextDueDate(
+                startsAfterThisMonthsDueDay,
+                new DateOnly(2026, 2, 1)));
+        Assert.IsNull(RecurringDateCalculator.GetNextDueDate(
+            endsBeforeClampedDueDay,
+            new DateOnly(2026, 2, 1)));
+    }
+
+    [TestMethod]
+    public void GetUpcomingBills_OrdersOccurrencesAndUsesCalendarDayCountdowns()
+    {
+        var today = new DateOnly(2026, 1, 30);
+        var bills = new[]
+        {
+            Bill() with { Id = 2, Name = "March rent", DueDay = 1 },
+            Bill() with { Id = 1, Name = "Month end", DueDay = 31 },
+            Bill() with { Id = 3, Name = "Paused", DueDay = 30, IsActive = false },
+        };
+
+        var upcoming = RecurringDateCalculator.GetUpcomingBills(bills, today);
+
+        Assert.HasCount(2, upcoming);
+        Assert.AreEqual("Month end", upcoming[0].Bill.Name);
+        Assert.AreEqual(new DateOnly(2026, 1, 31), upcoming[0].DueDate);
+        Assert.AreEqual(1, upcoming[0].DaysUntilDue);
+        Assert.AreEqual("March rent", upcoming[1].Bill.Name);
+        Assert.AreEqual(new DateOnly(2026, 2, 1), upcoming[1].DueDate);
+        Assert.AreEqual(2, upcoming[1].DaysUntilDue);
+    }
+
+    [TestMethod]
+    public void GetDaysUntilDue_IsStableAcrossLeapDayAndYearBoundary()
+    {
+        Assert.AreEqual(
+            2,
+            RecurringDateCalculator.GetDaysUntilDue(
+                new DateOnly(2024, 2, 28),
+                new DateOnly(2024, 3, 1)));
+        Assert.AreEqual(
+            1,
+            RecurringDateCalculator.GetDaysUntilDue(
+                new DateOnly(2026, 12, 31),
+                new DateOnly(2027, 1, 1)));
+    }
+
     private static RecurringBill Bill() => new(
         1,
         "Rent",
