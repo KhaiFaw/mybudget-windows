@@ -53,10 +53,10 @@ dotnet test tests/MyBudget.Core.Tests/MyBudget.Core.Tests.csproj -c Release
 dotnet test tests/MyBudget.Infrastructure.Tests/MyBudget.Infrastructure.Tests.csproj -c Release
 dotnet build src/MyBudget.App/MyBudget.App.csproj -c Release --no-restore -p:Platform=x64 -p:RuntimeIdentifier=win-x64
 dotnet run --project src/MyBudget.App/MyBudget.App.csproj -c Release --no-build -p:Platform=x64 -p:RuntimeIdentifier=win-x64
-dotnet publish src/MyBudget.App/MyBudget.App.csproj -c Release --no-restore -p:Platform=x64 -p:RuntimeIdentifier=win-x64 --self-contained true -o artifacts/MyBudget-win-x64
+dotnet publish src/MyBudget.App/MyBudget.App.csproj -c Release --no-restore -p:Platform=x64 -p:RuntimeIdentifier=win-x64 --self-contained true -p:PublishSingleFile=false -o artifacts/MyBudget-win-x64
 ```
 
-The publish command creates a portable folder with `artifacts/MyBudget-win-x64/MyBudget.App.exe`. Keep that folder together when moving it to another PC. The application database is created under the current Windows user's local application-data folder. Database files, exports, backups, signing certificates, and build output are excluded from Git.
+The publish command creates a portable folder with `artifacts/MyBudget-win-x64/MyBudget.App.exe`. If it is distributed as a ZIP, extract the entire ZIP before opening the app, then double-click `MyBudget.App.exe` inside the extracted folder. Keep every published file and folder together; moving or copying only the EXE omits resources that WinUI needs to start. The application database is created under the current Windows user's local application-data folder. Database files, exports, backups, signing certificates, and build output are excluded from Git.
 
 ## Privacy and limitations
 

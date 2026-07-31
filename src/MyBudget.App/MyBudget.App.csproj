@@ -14,7 +14,9 @@
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <SelfContained>true</SelfContained>
-    <EnableMsixTooling>false</EnableMsixTooling>
+    <!-- The tooling target also places the compiled PRI/XAML resources into
+         dotnet publish output. WindowsPackageType=None keeps the app unpackaged. -->
+    <EnableMsixTooling>true</EnableMsixTooling>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>14.0</LangVersion>
@@ -34,6 +36,10 @@
 
   <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
+    <None Update="HOW_TO_OPEN.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
   </ItemGroup>
 
   <!--
