@@ -13,11 +13,14 @@
     <NavigationView
         x:Name="RootNavigation"
         AlwaysShowHeader="False"
+        CompactPaneLength="48"
         IsBackButtonVisible="Collapsed"
         IsPaneOpen="True"
         IsSettingsVisible="True"
         OpenPaneLength="224"
+        PaneClosing="RootNavigation_PaneClosing"
         PaneDisplayMode="LeftCompact"
+        PaneOpening="RootNavigation_PaneOpening"
         SelectionChanged="Navigation_SelectionChanged">
 
         <NavigationView.PaneHeader>
@@ -70,46 +73,53 @@
         </NavigationView.MenuItems>
 
         <NavigationView.PaneFooter>
-            <StackPanel Margin="12,8,12,14" Spacing="3">
-                <StackPanel Orientation="Horizontal" Spacing="7">
-                    <FontIcon
-                        FontSize="11"
-                        Foreground="{ThemeResource AppAccentBrush}"
-                        Glyph="&#xE73E;" />
+            <StackPanel x:Name="PaneFooterContent" Margin="12,8,12,14" Spacing="3">
+                <StackPanel x:Name="ExpandedPrivacyFooter" Spacing="3">
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                        <FontIcon
+                            FontSize="11"
+                            Foreground="{ThemeResource AppAccentBrush}"
+                            Glyph="&#xE73E;" />
+                        <TextBlock
+                            FontSize="12"
+                            Foreground="{ThemeResource AppTextSecondaryBrush}"
+                            Text="Private on this PC" />
+                    </StackPanel>
                     <TextBlock
-                        FontSize="12"
+                        FontSize="11"
                         Foreground="{ThemeResource AppTextSecondaryBrush}"
-                        Text="Private on this PC" />
+                        Text="No cloud account required" />
                 </StackPanel>
-                <TextBlock
-                    FontSize="11"
-                    Foreground="{ThemeResource AppTextSecondaryBrush}"
-                    Text="No cloud account required" />
                 <Border
+                    x:Name="FooterDivider"
                     Height="1"
                     Margin="0,8,0,6"
                     Background="{ThemeResource AppBorderBrush}" />
                 <StackPanel
-                    AutomationProperties.Name="Created by KhaiFaw"
+                    x:Name="CreatorAttributionRow"
                     Orientation="Horizontal"
-                    Spacing="8"
-                    ToolTipService.ToolTip="Original MyBudget build by KhaiFaw">
+                    Spacing="8">
                     <Border
-                        Width="26"
-                        Height="26"
+                        Width="24"
+                        Height="24"
+                        AutomationProperties.Name="Created by KhaiFaw"
                         Background="{ThemeResource AppAccentSoftBrush}"
                         BorderBrush="{ThemeResource AppAccentBrush}"
                         BorderThickness="1"
-                        CornerRadius="8">
+                        CornerRadius="7"
+                        ToolTipService.ToolTip="Created by KhaiFaw">
                         <TextBlock
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             FontSize="9"
                             FontWeight="Bold"
-                            Foreground="{ThemeResource AppAccentBrush}"
+                            Foreground="{ThemeResource AppTextPrimaryBrush}"
                             Text="KF" />
                     </Border>
-                    <StackPanel VerticalAlignment="Center" Spacing="0">
+                    <StackPanel
+                        x:Name="ExpandedCreatorAttribution"
+                        VerticalAlignment="Center"
+                        Spacing="0">
                         <TextBlock
                             FontSize="11"
                             FontWeight="SemiBold"

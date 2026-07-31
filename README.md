@@ -59,8 +59,6 @@ dotnet publish src/MyBudget.App/MyBudget.App.csproj -c Release --no-restore -p:P
 
 The publish command creates a portable folder with `artifacts/MyBudget-win-x64/MyBudget.App.exe`. If it is distributed as a ZIP, extract the entire ZIP before opening the app, then double-click `MyBudget.App.exe` inside the extracted folder. Keep every published file and folder together; moving or copying only the EXE omits resources that WinUI needs to start. The application database is created under the current Windows user's local application-data folder. Database files, exports, backups, signing certificates, and build output are excluded from Git.
 
-For local experimentation, first-party release files can also be signed with a non-exportable, self-signed KhaiFaw development certificate. This detects changes and distinguishes your build from a differently signed copy; it does not prevent copying or establish a publicly trusted publisher identity. See [docs/signing.md](docs/signing.md).
-
 ## Privacy and limitations
 
 The current app is local-first, but the SQLite database is not encrypted at rest. Windows account protection and device encryption remain important. Review [docs/privacy.md](docs/privacy.md) before entering sensitive notes or sharing a backup.

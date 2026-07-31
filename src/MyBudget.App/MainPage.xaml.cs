@@ -30,8 +30,25 @@ public sealed partial class MainPage : Page
 
     private async void Page_Loaded(object sender, RoutedEventArgs e)
     {
+        UpdatePaneFooter(RootNavigation.IsPaneOpen);
         ShowSection("Overview");
         await ViewModel.InitializeAsync();
+    }
+
+    private void RootNavigation_PaneClosing(
+        NavigationView sender,
+        NavigationViewPaneClosingEventArgs args) => UpdatePaneFooter(false);
+
+    private void RootNavigation_PaneOpening(NavigationView sender, object args) =>
+        UpdatePaneFooter(true);
+
+    private void UpdatePaneFooter(bool isPaneOpen)
+    {
+        var expandedVisibility = isPaneOpen ? Visibility.Visible : Visibility.Collapsed;
+
+        ExpandedPrivacyFooter.Visibility = expandedVisibility;
+        FooterDivider.Visibility = expandedVisibility;
+        ExpandedCreatorAttribution.Visibility = expandedVisibility;
     }
 
     private void Navigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)

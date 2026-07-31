@@ -9,8 +9,3 @@ the EXE is moved or copied by itself.
 
 Your budget data stays on this PC under:
 %LOCALAPPDATA%\KhaiFaw\MyBudget
-
-AUTHENTICITY
-Signed local builds include SIGNATURE.txt. You can also right-click
-MyBudget.App.exe, select Properties, and open the Digital Signatures tab to
-see the KhaiFaw MyBudget Development signature.
