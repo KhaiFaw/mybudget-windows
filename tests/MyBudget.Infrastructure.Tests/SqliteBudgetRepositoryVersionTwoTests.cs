@@ -50,7 +50,7 @@ public sealed class SqliteBudgetRepositoryVersionTwoTests
         await using (var command = connection.CreateCommand())
         {
             command.CommandText = "PRAGMA user_version;";
-            Assert.AreEqual(2L, Convert.ToInt64(await command.ExecuteScalarAsync()));
+            Assert.AreEqual(3L, Convert.ToInt64(await command.ExecuteScalarAsync()));
         }
 
         var snapshot = await repository.LoadAsync(July);
@@ -230,6 +230,186 @@ public sealed class SqliteBudgetRepositoryVersionTwoTests
         Assert.AreEqual(sourceId, transaction.RecurringIncomeId);
         Assert.AreEqual(new DateOnly(2026, 1, 15), transaction.Date);
         Assert.AreEqual(1_200m, transaction.Amount);
+    }
+
+    [TestMethod]
+    public async Task RecurringIncome_EditedOccurrenceCanBeDeletedWhileFutureMonthsContinue()
+    {
+        var repository = await CreateInitializedRepositoryAsync();
+        var salaryCategoryId = (await repository.LoadAsync(January)).Categories
+            .Single(item => item.Kind == CategoryKind.Income && item.Name == "Salary")
+            .Id;
+        var sourceId = await repository.UpsertRecurringIncomeAsync(
+            new RecurringIncome(
+                0,
+                "Monthly salary",
+                3_500m,
+                28,
+                salaryCategoryId,
+                StartDate: January.FirstDay),
+            January);
+        await repository.SynchronizeRecurringIncomeAsync(February.LastDay);
+
+        var februaryDeposit = Assert.ContainsSingle((await repository.LoadAsync(February)).Transactions);
+        await repository.UpsertTransactionAsync(februaryDeposit with
+        {
+            Date = new DateOnly(2026, 2, 27),
+            Amount = 3_450m,
+            Note = "Corrected February salary"
+        });
+
+        var correctedFebruaryDeposit = Assert.ContainsSingle(
+            (await repository.LoadAsync(February)).Transactions);
+        Assert.AreEqual(februaryDeposit.Id, correctedFebruaryDeposit.Id);
+        Assert.AreEqual(sourceId, correctedFebruaryDeposit.RecurringIncomeId);
+        Assert.AreEqual(new DateOnly(2026, 2, 27), correctedFebruaryDeposit.Date);
+        Assert.AreEqual(3_450m, correctedFebruaryDeposit.Amount);
+        Assert.AreEqual("Corrected February salary", correctedFebruaryDeposit.Note);
+
+        await repository.DeleteTransactionAsync(februaryDeposit.Id);
+        await repository.SynchronizeRecurringIncomeAsync(new DateOnly(2026, 3, 31));
+        await repository.SynchronizeRecurringIncomeAsync(new DateOnly(2026, 3, 31));
+
+        Assert.IsEmpty((await repository.LoadAsync(February)).Transactions);
+        Assert.HasCount(1, (await repository.LoadAsync(January)).Transactions);
+        var marchDeposit = Assert.ContainsSingle(
+            (await repository.LoadAsync(new BudgetMonth(2026, 3))).Transactions);
+        Assert.AreEqual(sourceId, marchDeposit.RecurringIncomeId);
+        Assert.AreEqual(new DateOnly(2026, 3, 28), marchDeposit.Date);
+        Assert.AreEqual(3_500m, marchDeposit.Amount);
+
+        await using var connection = await OpenAsync(_databasePath);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT COUNT(*)
+            FROM RecurringIncomeOccurrenceSuppressions
+            WHERE RecurringIncomeId = $sourceId AND OccurrenceMonth = '2026-02';
+            """;
+        command.Parameters.AddWithValue("$sourceId", sourceId);
+        Assert.AreEqual(1L, Convert.ToInt64(await command.ExecuteScalarAsync()));
+    }
+
+    [TestMethod]
+    public async Task DeleteTransaction_OrdinaryEntryDoesNotCreateRecurringSuppression()
+    {
+        var repository = await CreateInitializedRepositoryAsync();
+        var foodCategoryId = (await repository.LoadAsync(July)).Categories
+            .Single(item => item.Name == "Food")
+            .Id;
+        var transactionId = Guid.NewGuid();
+        await repository.UpsertTransactionAsync(new BudgetTransaction(
+            transactionId,
+            new DateOnly(2026, 7, 3),
+            TransactionType.Expense,
+            18m,
+            foodCategoryId,
+            "Lunch"));
+
+        await repository.DeleteTransactionAsync(transactionId);
+
+        Assert.IsEmpty((await repository.LoadAsync(July)).Transactions);
+        await using var connection = await OpenAsync(_databasePath);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM RecurringIncomeOccurrenceSuppressions;";
+        Assert.AreEqual(0L, Convert.ToInt64(await command.ExecuteScalarAsync()));
+    }
+
+    [TestMethod]
+    public async Task DeleteRecurringOccurrence_RollsBackDeletionWhenSuppressionCannotBeSaved()
+    {
+        var repository = await CreateInitializedRepositoryAsync();
+        var salaryCategoryId = (await repository.LoadAsync(January)).Categories
+            .Single(item => item.Kind == CategoryKind.Income && item.Name == "Salary")
+            .Id;
+        await repository.UpsertRecurringIncomeAsync(
+            new RecurringIncome(
+                0,
+                "Monthly salary",
+                3_500m,
+                15,
+                salaryCategoryId,
+                StartDate: January.FirstDay),
+            January);
+        await repository.SynchronizeRecurringIncomeAsync(new DateOnly(2026, 1, 15));
+        var deposit = Assert.ContainsSingle((await repository.LoadAsync(January)).Transactions);
+
+        await using (var connection = await OpenAsync(_databasePath))
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = """
+                CREATE TRIGGER TR_Test_RejectRecurringIncomeSuppression
+                BEFORE INSERT ON RecurringIncomeOccurrenceSuppressions
+                BEGIN
+                    SELECT RAISE(ABORT, 'Forced suppression failure.');
+                END;
+                """;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await Assert.ThrowsAsync<SqliteException>(() => repository.DeleteTransactionAsync(deposit.Id));
+
+        var preservedDeposit = Assert.ContainsSingle((await repository.LoadAsync(January)).Transactions);
+        Assert.AreEqual(deposit.Id, preservedDeposit.Id);
+    }
+
+    [TestMethod]
+    public async Task Initialize_MigratesVersionTwoDatabaseToSuppressionSchemaWithoutDataLoss()
+    {
+        var repository = await CreateInitializedRepositoryAsync();
+        var salaryCategoryId = (await repository.LoadAsync(January)).Categories
+            .Single(item => item.Kind == CategoryKind.Income && item.Name == "Salary")
+            .Id;
+        var sourceId = await repository.UpsertRecurringIncomeAsync(
+            new RecurringIncome(
+                0,
+                "Existing salary",
+                2_750m,
+                20,
+                salaryCategoryId,
+                StartDate: January.FirstDay),
+            January);
+        await repository.SynchronizeRecurringIncomeAsync(new DateOnly(2026, 1, 20));
+        var existingDeposit = Assert.ContainsSingle((await repository.LoadAsync(January)).Transactions);
+
+        // A current database with the v3-only table removed is byte-for-byte the
+        // relevant v2 shape and lets this test preserve a realistic linked occurrence.
+        await using (var connection = await OpenAsync(_databasePath))
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = """
+                DROP TABLE RecurringIncomeOccurrenceSuppressions;
+                PRAGMA user_version = 2;
+                """;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        var migratedRepository = new SqliteBudgetRepository(_databasePath);
+        await migratedRepository.InitializeAsync();
+        await migratedRepository.InitializeAsync();
+
+        await using (var connection = await OpenAsync(_databasePath))
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = """
+                SELECT
+                    (SELECT user_version FROM pragma_user_version),
+                    (SELECT COUNT(*) FROM sqlite_master
+                     WHERE type = 'table' AND name = 'RecurringIncomeOccurrenceSuppressions');
+                """;
+            await using var reader = await command.ExecuteReaderAsync();
+            Assert.IsTrue(await reader.ReadAsync());
+            Assert.AreEqual(3L, reader.GetInt64(0));
+            Assert.AreEqual(1L, reader.GetInt64(1));
+        }
+
+        var migratedDeposit = Assert.ContainsSingle((await migratedRepository.LoadAsync(January)).Transactions);
+        Assert.AreEqual(existingDeposit.Id, migratedDeposit.Id);
+        Assert.AreEqual(sourceId, migratedDeposit.RecurringIncomeId);
+        Assert.AreEqual(2_750m, migratedDeposit.Amount);
+
+        await migratedRepository.DeleteTransactionAsync(migratedDeposit.Id);
+        await migratedRepository.SynchronizeRecurringIncomeAsync(new DateOnly(2026, 1, 31));
+        Assert.IsEmpty((await migratedRepository.LoadAsync(January)).Transactions);
     }
 
     [TestMethod]

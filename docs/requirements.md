@@ -26,6 +26,7 @@ Make monthly budgeting fast enough to become a habit while keeping the user's da
 18. Categorize income with income-compatible categories such as Salary and Other income rather than displaying it as uncategorized.
 19. Let a savings transaction target either a savings goal or an investment, while preventing one transaction from targeting both.
 20. Track Tabung Haji, ASB, Maybank Gold, and additional user-created investments with contributions, optional dated valuations, gain/loss summaries, and restorable archives.
+21. Let the user edit or delete an already-posted recurring-income entry without changing its schedule or future deposits.
 
 ## Calculation rules
 
@@ -40,6 +41,7 @@ Make monthly budgeting fast enough to become a habit while keeping the user's da
 - bill countdowns use local calendar days rather than elapsed UTC hours
 - recurring-income synchronization follows the PC-local date and is idempotent, so reopening or refreshing cannot post the same scheduled deposit twice
 - changes to a recurring-income schedule apply from their effective month without rewriting deposits that have already been posted
+- editing or deleting a posted recurring-income entry affects only that occurrence; deleting it suppresses automatic reposting for that schedule and month while later deposits continue normally
 - editing a transaction preserves its identity and immediately recalculates its month, future carry-forward, linked goal, and linked investment as applicable
 - only savings transactions may link to a goal or investment, and each transaction may have at most one destination
 - a goal's current amount is its starting amount plus all savings transactions linked to it
@@ -62,6 +64,7 @@ Make monthly budgeting fast enough to become a habit while keeping the user's da
 - Opening the app selects the PC-local current month and day; leaving it open across midnight refreshes the day automatically.
 - A recurring bill can be edited without creating a duplicate, and the nearest due occurrence is ordered first.
 - A recurring-income schedule posts once on its local-calendar payday, including a clamped payday in a shorter month.
+- A posted recurring-income entry can be edited or deleted from Transactions; deleting it does not recreate it on refresh or alter the schedule's future deposits.
 - Moving between months shows a carry-forward derived from all earlier cash activity without requiring a manual opening balance.
 - Editing or deleting a historical transaction updates later carry-forward totals.
 - Editing a transaction retains one record and applies the new category or savings destination.

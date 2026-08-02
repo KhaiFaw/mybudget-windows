@@ -12,7 +12,7 @@ namespace MyBudget.Infrastructure;
 /// </summary>
 public sealed class SqliteBudgetRepository : IBudgetRepository
 {
-    private const int CurrentSchemaVersion = 2;
+    private const int CurrentSchemaVersion = 3;
     private const long MaximumCsvBytes = 10 * 1024 * 1024;
     private const int MaximumCsvRows = 50_000;
 
@@ -80,6 +80,12 @@ public sealed class SqliteBudgetRepository : IBudgetRepository
         if (schemaVersion < 2)
         {
             await MigrateToVersion2Async(connection, transaction, cancellationToken);
+            schemaVersion = 2;
+        }
+
+        if (schemaVersion < 3)
+        {
+            await MigrateToVersion3Async(connection, transaction, cancellationToken);
         }
 
         foreach (var category in DefaultCategories)
@@ -216,7 +222,28 @@ public sealed class SqliteBudgetRepository : IBudgetRepository
 
     public async Task DeleteTransactionAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        await ExecuteDeleteAsync("Transactions", "Id", id.ToString("D"), cancellationToken);
+        await using var connection = await OpenConnectionAsync(cancellationToken);
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            INSERT OR IGNORE INTO RecurringIncomeOccurrenceSuppressions
+                (RecurringIncomeId, OccurrenceMonth, CreatedUtc)
+            SELECT
+                RecurringIncomeId,
+                COALESCE(RecurringOccurrenceMonth, substr(Date, 1, 7)),
+                $now
+            FROM Transactions
+            WHERE Id = $id
+              AND RecurringIncomeId IS NOT NULL;
+
+            DELETE FROM Transactions
+            WHERE Id = $id;
+            """;
+        Add(command, "$id", id.ToString("D"));
+        Add(command, "$now", DateTimeOffset.UtcNow.ToString("O", Invariant));
+        await command.ExecuteNonQueryAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     public async Task SaveAllocationsAsync(
@@ -1648,6 +1675,32 @@ public sealed class SqliteBudgetRepository : IBudgetRepository
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    private static async Task MigrateToVersion3Async(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            CREATE TABLE RecurringIncomeOccurrenceSuppressions (
+                RecurringIncomeId INTEGER NOT NULL,
+                OccurrenceMonth   TEXT NOT NULL
+                    CHECK (length(OccurrenceMonth) = 7
+                           AND OccurrenceMonth GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]'
+                           AND substr(OccurrenceMonth, 5, 1) = '-'
+                           AND CAST(substr(OccurrenceMonth, 1, 4) AS INTEGER) BETWEEN 1 AND 9999
+                           AND CAST(substr(OccurrenceMonth, 6, 2) AS INTEGER) BETWEEN 1 AND 12),
+                CreatedUtc        TEXT NOT NULL,
+                PRIMARY KEY (RecurringIncomeId, OccurrenceMonth),
+                FOREIGN KEY (RecurringIncomeId) REFERENCES RecurringIncomes(Id) ON DELETE CASCADE
+            );
+
+            PRAGMA user_version = 3;
+            """;
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     private async Task ExecuteDeleteAsync(
         string table,
         string idColumn,
@@ -1707,6 +1760,16 @@ public sealed class SqliteBudgetRepository : IBudgetRepository
         string now,
         CancellationToken cancellationToken)
     {
+        if (await IsRecurringIncomeOccurrenceSuppressedAsync(
+                connection,
+                transaction,
+                income.Id,
+                occurrenceMonth,
+                cancellationToken))
+        {
+            return;
+        }
+
         if (await TryAdoptManagedIncomeOccurrenceAsync(
                 connection,
                 transaction,
@@ -1740,6 +1803,27 @@ public sealed class SqliteBudgetRepository : IBudgetRepository
         Add(command, "$recurringIncomeId", income.Id);
         Add(command, "$occurrenceMonth", occurrenceMonth.ToString());
         await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static async Task<bool> IsRecurringIncomeOccurrenceSuppressedAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        long recurringIncomeId,
+        BudgetMonth occurrenceMonth,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            SELECT EXISTS (
+                SELECT 1
+                FROM RecurringIncomeOccurrenceSuppressions
+                WHERE RecurringIncomeId = $recurringIncomeId
+                  AND OccurrenceMonth = $occurrenceMonth);
+            """;
+        Add(command, "$recurringIncomeId", recurringIncomeId);
+        Add(command, "$occurrenceMonth", occurrenceMonth.ToString());
+        return Convert.ToInt64(await command.ExecuteScalarAsync(cancellationToken), Invariant) != 0;
     }
 
     private static async Task<bool> TryAdoptManagedIncomeOccurrenceAsync(

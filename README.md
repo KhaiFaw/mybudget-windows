@@ -18,7 +18,7 @@ These are captures from the running native WinUI application using the built-in 
 
 - Monthly dashboard with carry-forward, income, planned spending, actual spending, savings, and available money kept separate
 - PC-local day tracking: the app opens on today, new entries default to today, and an open app follows midnight
-- Recurring monthly income with an editable amount and payday; due deposits are created automatically and never duplicated by a refresh
+- Recurring monthly income with an editable amount and payday; due deposits are created automatically, and each posted deposit can be corrected or removed without changing future deposits
 - Automatic carry-forward that recalculates the next month's opening money when an earlier transaction changes
 - Category plans with clear over-budget warnings
 - Editable income, expense, savings, refund, and transfer transactions with stable income categories such as Salary and Other income

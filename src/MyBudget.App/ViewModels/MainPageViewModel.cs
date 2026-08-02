@@ -149,8 +149,13 @@ public sealed class MainPageViewModel : ObservableObject
     public string BillFormTitle => IsEditingBill ? "Edit recurring bill" : "Add recurring bill";
     public string BillSubmitText => IsEditingBill ? "Save bill changes" : "Add recurring bill";
     public bool IsEditingTransaction => _transactionBeingEdited is not null;
-    public string TransactionFormTitle => IsEditingTransaction ? "Edit transaction" : "Daily money entry";
-    public string TransactionSubmitText => IsEditingTransaction ? "Save changes" : "Add transaction";
+    public bool IsEditingPostedIncome => _transactionBeingEdited?.RecurringIncomeId is not null;
+    public string TransactionFormTitle => IsEditingPostedIncome
+        ? "Edit income received"
+        : IsEditingTransaction ? "Edit transaction" : "Daily money entry";
+    public string TransactionSubmitText => IsEditingPostedIncome
+        ? "Save income changes"
+        : IsEditingTransaction ? "Save changes" : "Add transaction";
     public bool IsEditingInvestment => _investmentBeingEdited is not null;
     public string InvestmentFormTitle => IsEditingInvestment ? "Update investment" : "Add an investment";
     public string InvestmentSubmitText => IsEditingInvestment ? "Save investment update" : "Add investment";
@@ -635,21 +640,27 @@ public sealed class MainPageViewModel : ObservableObject
     public async Task DeleteTransactionAsync(Guid id)
     {
         var transaction = _snapshot.Transactions.FirstOrDefault(item => item.Id == id);
-        if (transaction?.RecurringIncomeId is not null)
+        if (transaction is null)
         {
-            SetError("Recurring income entries are protected. Pause or update the income schedule instead.");
+            SetError("That transaction is no longer available.");
             return;
         }
 
+        var isPostedRecurringIncome = transaction.RecurringIncomeId is not null;
         var deleted = await RunAndReloadAsync(
             () => _repository.DeleteTransactionAsync(id),
-            "Transaction deleted",
+            isPostedRecurringIncome
+                ? $"Income entry for {transaction.Date:dd MMM yyyy} deleted; future scheduled deposits will continue"
+                : "Transaction deleted",
             "We couldn't delete that transaction.");
         if (deleted && _transactionBeingEdited?.Id == id)
         {
             ResetTransactionForm();
         }
     }
+
+    public bool IsPostedRecurringIncome(Guid id) =>
+        _snapshot.Transactions.Any(transaction => transaction.Id == id && transaction.RecurringIncomeId is not null);
 
     public async Task ArchiveInvestmentAsync(long id)
     {
@@ -870,8 +881,8 @@ public sealed class MainPageViewModel : ObservableObject
                 GetTransactionDestinationLabel(transaction, snapshot),
                 FormatSignedMoney(transaction),
                 transaction.Type is TransactionType.Expense ? "Expense" : "Positive",
-                transaction.RecurringIncomeId is null ? "Edit" : "Edit entry",
-                transaction.RecurringIncomeId is null)));
+                transaction.RecurringIncomeId is null ? "Edit" : "Edit income",
+                true)));
 
         RefreshBills(snapshot);
 
@@ -1375,6 +1386,7 @@ public sealed class MainPageViewModel : ObservableObject
     private void NotifyTransactionEditorChanged()
     {
         OnPropertyChanged(nameof(IsEditingTransaction));
+        OnPropertyChanged(nameof(IsEditingPostedIncome));
         OnPropertyChanged(nameof(TransactionFormTitle));
         OnPropertyChanged(nameof(TransactionSubmitText));
     }
@@ -1597,7 +1609,7 @@ public sealed class MainPageViewModel : ObservableObject
             ? "The schedule has ended."
             : $"Next deposit: {nextDate.Value:dd MMM yyyy}.";
         var clampText = schedule.PayDay >= 29 ? " Shorter months use their last day." : string.Empty;
-        return $"Paid on day {schedule.PayDay} every month. {nextText}{clampText} Changes apply to deposits that have not been posted yet; use Edit entry for an existing deposit.";
+        return $"Paid on day {schedule.PayDay} every month. {nextText}{clampText} Future changes use this schedule; edit or delete an existing deposit from Transactions.";
     }
 
     private string GetCarryForwardContext(decimal amount, BudgetMonth month)

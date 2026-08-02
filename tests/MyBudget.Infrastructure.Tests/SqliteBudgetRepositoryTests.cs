@@ -63,7 +63,7 @@ public sealed class SqliteBudgetRepositoryTests
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
             command.CommandText = "PRAGMA user_version;";
-            Assert.AreEqual(2L, Convert.ToInt64(await command.ExecuteScalarAsync()));
+            Assert.AreEqual(3L, Convert.ToInt64(await command.ExecuteScalarAsync()));
         }
 
         var futurePath = Path.Combine(_temporaryDirectory, "future.db");
@@ -72,7 +72,7 @@ public sealed class SqliteBudgetRepositoryTests
         {
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
-            command.CommandText = "PRAGMA user_version = 3;";
+            command.CommandText = "PRAGMA user_version = 4;";
             await command.ExecuteNonQueryAsync();
         }
 

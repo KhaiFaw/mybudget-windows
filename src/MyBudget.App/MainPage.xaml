@@ -291,7 +291,24 @@
                                         Value="{x:Bind ViewModel.MonthlyIncomePayDay, Mode=TwoWay}" />
                                     <Button Grid.Column="2" Margin="0,24,0,0" VerticalAlignment="Stretch" Click="SaveMonthlyIncome_Click" Content="Save schedule" CornerRadius="9" />
                                 </Grid>
-                                <TextBlock FontSize="12" Foreground="{ThemeResource AppTextSecondaryBrush}" Text="{x:Bind ViewModel.MonthlyIncomeScheduleText, Mode=OneWay}" TextWrapping="Wrap" />
+                                <Grid ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontSize="12"
+                                        Foreground="{ThemeResource AppTextSecondaryBrush}"
+                                        Text="{x:Bind ViewModel.MonthlyIncomeScheduleText, Mode=OneWay}"
+                                        TextWrapping="Wrap" />
+                                    <Button
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        AutomationProperties.Name="Manage received income entries"
+                                        Click="GoToTransactions_Click"
+                                        Content="Manage entries" />
+                                </Grid>
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="1" Padding="22" Background="{ThemeResource AppAccentSoftBrush}" BorderBrush="{ThemeResource AppAccentBrush}" BorderThickness="1" CornerRadius="18">

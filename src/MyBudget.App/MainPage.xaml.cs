@@ -237,7 +237,23 @@ public sealed partial class MainPage : Page
     {
         if (sender is Button { Tag: Guid id })
         {
-            await ViewModel.DeleteTransactionAsync(id);
+            var isPostedIncome = ViewModel.IsPostedRecurringIncome(id);
+            var confirmation = new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = isPostedIncome ? "Delete this income entry?" : "Delete this transaction?",
+                Content = isPostedIncome
+                    ? "Only this posted deposit will be removed. Your monthly schedule and future deposits will continue."
+                    : "This permanently removes only this transaction.",
+                PrimaryButtonText = "Delete entry",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Close,
+            };
+
+            if (await confirmation.ShowAsync() == ContentDialogResult.Primary)
+            {
+                await ViewModel.DeleteTransactionAsync(id);
+            }
         }
     }
 
