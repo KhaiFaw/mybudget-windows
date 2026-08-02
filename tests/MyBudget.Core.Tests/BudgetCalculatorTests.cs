@@ -150,6 +150,41 @@ public sealed class BudgetCalculatorTests
     }
 
     [TestMethod]
+    public void Calculate_IncludesCarryForwardInAvailableAndRemainingToPlan()
+    {
+        var snapshot = CreateSnapshot(
+            transactions:
+            [
+                Transaction(TransactionType.Income, 2_000m),
+                Transaction(TransactionType.Expense, 400m, Food.Id),
+                Transaction(TransactionType.Savings, 300m, EmergencyFund.Id),
+            ],
+            allocations: [new BudgetAllocation(Food.Id, July, 1_500m)]) with
+        {
+            CarryForward = 750m,
+        };
+
+        var result = BudgetCalculator.Calculate(snapshot);
+
+        Assert.AreEqual(750m, result.CarryForward);
+        Assert.AreEqual(2_050m, result.Available);
+        Assert.AreEqual(1_250m, result.RemainingToPlan);
+    }
+
+    [TestMethod]
+    public void Calculate_RejectsSavingsLinkedToBothGoalAndInvestment()
+    {
+        var invalid = Transaction(TransactionType.Savings, 100m) with
+        {
+            SavingsGoalId = 1,
+            InvestmentId = 2,
+        };
+        var snapshot = CreateSnapshot(transactions: [invalid]);
+
+        Assert.Throws<ArgumentException>(() => BudgetCalculator.Calculate(snapshot));
+    }
+
+    [TestMethod]
     public void Calculate_BuildsSortedCategoryProgressAndCapsChartPercent()
     {
         var snapshot = CreateSnapshot(

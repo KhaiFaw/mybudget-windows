@@ -68,8 +68,11 @@
             <NavigationViewItem Content="Goals" Tag="Goals">
                 <NavigationViewItem.Icon><SymbolIcon Symbol="Favorite" /></NavigationViewItem.Icon>
             </NavigationViewItem>
-            <NavigationViewItem Content="Reports" Tag="Reports">
+            <NavigationViewItem Content="Investments" Tag="Investments">
                 <NavigationViewItem.Icon><FontIcon Glyph="&#xE9D2;" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem Content="Reports" Tag="Reports">
+                <NavigationViewItem.Icon><FontIcon Glyph="&#xE9D5;" /></NavigationViewItem.Icon>
             </NavigationViewItem>
         </NavigationView.MenuItems>
 
@@ -243,54 +246,78 @@
                         </Grid>
                     </Border>
 
-                    <Grid ColumnSpacing="12">
+                    <Grid ColumnSpacing="16">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.35*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="1.55*" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Border BorderBrush="{ThemeResource AppAccentBrush}" Style="{StaticResource CompactCardStyle}">
-                            <StackPanel Spacing="7">
+                        <Border BorderBrush="{ThemeResource AppAccentBrush}" Style="{StaticResource CardStyle}">
+                            <StackPanel Spacing="12">
                                 <Grid>
-                                    <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="MONTHLY INCOME" />
-                                    <FontIcon
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="INCOME RECEIVED THIS MONTH" />
+                                        <TextBlock Margin="0,3,0,0" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" Text="{x:Bind ViewModel.IncomeText, Mode=OneWay}" />
+                                    </StackPanel>
+                                    <ToggleSwitch
                                         HorizontalAlignment="Right"
-                                        FontSize="12"
-                                        Foreground="{ThemeResource AppAccentBrush}"
-                                        Glyph="&#xE70F;" />
+                                        VerticalAlignment="Center"
+                                        AutomationProperties.Name="Repeat income every month"
+                                        IsOn="{x:Bind ViewModel.IsMonthlyIncomeActive, Mode=TwoWay}"
+                                        OffContent="Paused"
+                                        OnContent="Repeats monthly" />
                                 </Grid>
-                                <TextBlock
-                                    FontSize="21"
-                                    FontWeight="SemiBold"
-                                    Foreground="{ThemeResource AppTextPrimaryBrush}"
-                                    Text="{x:Bind ViewModel.IncomeText, Mode=OneWay}" />
-                                <Grid ColumnSpacing="6">
+                                <Grid ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1.35*" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <NumberBox
                                         x:Name="MonthlyIncomeNumberBox"
-                                        AutomationProperties.Name="Monthly income amount"
+                                        Header="Amount"
+                                        AutomationProperties.Name="Recurring monthly income amount"
                                         Minimum="0"
                                         PlaceholderText="0.00"
                                         SpinButtonPlacementMode="Hidden"
                                         Value="{x:Bind ViewModel.MonthlyIncomeAmount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                    <Button
+                                    <NumberBox
                                         Grid.Column="1"
-                                        VerticalAlignment="Stretch"
-                                        Click="SaveMonthlyIncome_Click"
-                                        Content="Update"
-                                        CornerRadius="8" />
+                                        Header="Pay day"
+                                        AutomationProperties.Name="Monthly income pay day"
+                                        Minimum="1"
+                                        Maximum="31"
+                                        SmallChange="1"
+                                        SpinButtonPlacementMode="Compact"
+                                        Value="{x:Bind ViewModel.MonthlyIncomePayDay, Mode=TwoWay}" />
+                                    <Button Grid.Column="2" Margin="0,24,0,0" VerticalAlignment="Stretch" Click="SaveMonthlyIncome_Click" Content="Save schedule" CornerRadius="9" />
                                 </Grid>
-                                <TextBlock
-                                    FontSize="11"
-                                    Foreground="{ThemeResource AppTextSecondaryBrush}"
-                                    Text="{x:Bind ViewModel.MonthlyIncomeEditorHintText, Mode=OneWay}"
-                                    TextTrimming="CharacterEllipsis"
-                                    ToolTipService.ToolTip="{x:Bind ViewModel.MonthlyIncomeEditorHintText, Mode=OneWay}" />
+                                <TextBlock FontSize="12" Foreground="{ThemeResource AppTextSecondaryBrush}" Text="{x:Bind ViewModel.MonthlyIncomeScheduleText, Mode=OneWay}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Padding="22" Background="{ThemeResource AppAccentSoftBrush}" BorderBrush="{ThemeResource AppAccentBrush}" BorderThickness="1" CornerRadius="18">
+                            <StackPanel VerticalAlignment="Center" Spacing="9">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Foreground="{ThemeResource AppAccentBrush}" Glyph="&#xE8C7;" />
+                                    <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="AVAILABLE THIS MONTH" />
+                                </StackPanel>
+                                <TextBlock FontSize="34" FontWeight="SemiBold" Foreground="{ThemeResource AppAccentBrush}" Text="{x:Bind ViewModel.AvailableText, Mode=OneWay}" />
+                                <TextBlock FontSize="12" Foreground="{ThemeResource AppTextSecondaryBrush}" Text="Carry-forward + income − spent − saved" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource CompactCardStyle}">
+                            <StackPanel Spacing="8">
+                                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="CARRIED FORWARD" />
+                                <TextBlock FontSize="23" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" Text="{x:Bind ViewModel.CarryForwardText, Mode=OneWay}" />
+                                <TextBlock FontSize="12" Foreground="{ThemeResource AppTextSecondaryBrush}" Text="{x:Bind ViewModel.CarryForwardContextText, Mode=OneWay}" />
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="1" Style="{StaticResource CompactCardStyle}">
@@ -309,16 +336,9 @@
                         </Border>
                         <Border Grid.Column="3" Style="{StaticResource CompactCardStyle}">
                             <StackPanel Spacing="8">
-                                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="SAVED" />
+                                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="SAVED &amp; INVESTED" />
                                 <TextBlock FontSize="23" FontWeight="SemiBold" Foreground="{ThemeResource AppAccentBrush}" Text="{x:Bind ViewModel.SavedText, Mode=OneWay}" />
-                                <TextBlock FontSize="12" Foreground="{ThemeResource AppTextSecondaryBrush}" Text="Moved toward goals" />
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="4" Background="{ThemeResource AppAccentSoftBrush}" BorderBrush="{ThemeResource AppAccentBrush}" BorderThickness="1" CornerRadius="14" Padding="16">
-                            <StackPanel Spacing="8">
-                                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="AVAILABLE" />
-                                <TextBlock FontSize="23" FontWeight="SemiBold" Foreground="{ThemeResource AppAccentBrush}" Text="{x:Bind ViewModel.AvailableText, Mode=OneWay}" />
-                                <TextBlock FontSize="12" Foreground="{ThemeResource AppTextSecondaryBrush}" Text="Income − spent − saved" />
+                                <TextBlock FontSize="12" Foreground="{ThemeResource AppTextSecondaryBrush}" Text="Goals, investments, and general savings" />
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -479,7 +499,7 @@
                     <Grid.ColumnDefinitions><ColumnDefinition Width="370" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                     <Border Style="{StaticResource CardStyle}" VerticalAlignment="Top">
                         <StackPanel Spacing="12">
-                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Daily money entry" />
+                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="{x:Bind ViewModel.TransactionFormTitle, Mode=OneWay}" />
                             <Border
                                 Padding="12"
                                 Background="{ThemeResource AppAccentSoftBrush}"
@@ -515,8 +535,26 @@
                                 Date="{x:Bind ViewModel.TransactionDate, Mode=TwoWay}" />
                             <NumberBox Header="Amount" Minimum="0" PlaceholderText="0.00" SpinButtonPlacementMode="Compact" Value="{x:Bind ViewModel.TransactionAmount, Mode=TwoWay}" />
                             <ComboBox Header="Category" DisplayMemberPath="Name" IsEnabled="{x:Bind ViewModel.IsTransactionCategoryEnabled, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.AvailableTransactionCategories}" SelectedItem="{x:Bind ViewModel.SelectedTransactionCategory, Mode=TwoWay}" />
+                            <ComboBox
+                                Header="Save or invest toward"
+                                DisplayMemberPath="Label"
+                                ItemsSource="{x:Bind ViewModel.SavingsDestinations}"
+                                SelectedItem="{x:Bind ViewModel.SelectedSavingsDestination, Mode=TwoWay}"
+                                Visibility="{x:Bind ViewModel.SavingsDestinationVisibility, Mode=OneWay}" />
                             <TextBox Header="Note" MaxLength="180" PlaceholderText="e.g. Groceries at the market" Text="{x:Bind ViewModel.TransactionNote, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                            <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Style="{StaticResource PrimaryActionButtonStyle}" Command="{x:Bind ViewModel.AddTransactionCommand}" Content="Add transaction" />
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Style="{StaticResource PrimaryActionButtonStyle}" Command="{x:Bind ViewModel.AddTransactionCommand}" Content="{x:Bind ViewModel.TransactionSubmitText, Mode=OneWay}" />
+                                <Button
+                                    x:Name="CancelTransactionEditButton"
+                                    Grid.Column="1"
+                                    Command="{x:Bind ViewModel.CancelTransactionEditCommand}"
+                                    Content="Cancel"
+                                    Visibility="Collapsed" />
+                            </Grid>
                         </StackPanel>
                     </Border>
                     <Border Grid.Column="1" Style="{StaticResource CardStyle}">
@@ -541,9 +579,22 @@
                                                 </StackPanel>
                                             </StackPanel>
                                             <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" Text="{Binding AmountText}" />
-                                            <Button Grid.Column="3" Tag="{Binding Id}" AutomationProperties.Name="Delete transaction" Click="DeleteTransaction_Click" ToolTipService.ToolTip="Delete transaction">
-                                                <SymbolIcon Symbol="Delete" />
-                                            </Button>
+                                            <StackPanel Grid.Column="3" VerticalAlignment="Center" Orientation="Horizontal" Spacing="4">
+                                                <Button
+                                                    Tag="{Binding Id}"
+                                                    AutomationProperties.Name="Edit transaction"
+                                                    Click="EditTransaction_Click"
+                                                    Content="{Binding ActionText}"
+                                                    ToolTipService.ToolTip="Edit transaction" />
+                                                <Button
+                                                    Tag="{Binding Id}"
+                                                    AutomationProperties.Name="Delete transaction"
+                                                    Click="DeleteTransaction_Click"
+                                                    IsEnabled="{Binding CanDelete}"
+                                                    ToolTipService.ToolTip="Delete transaction">
+                                                    <SymbolIcon Symbol="Delete" />
+                                                </Button>
+                                            </StackPanel>
                                         </Grid>
                                     </DataTemplate>
                                 </ListView.ItemTemplate>
@@ -645,7 +696,8 @@
                             <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Create a savings goal" />
                             <TextBox Header="Goal name" MaxLength="80" PlaceholderText="e.g. Emergency fund" Text="{x:Bind ViewModel.GoalName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                             <NumberBox Header="Target amount" Minimum="0" PlaceholderText="0.00" SpinButtonPlacementMode="Compact" Value="{x:Bind ViewModel.GoalTargetAmount, Mode=TwoWay}" />
-                            <NumberBox Header="Already saved" Minimum="0" PlaceholderText="0.00" SpinButtonPlacementMode="Compact" Value="{x:Bind ViewModel.GoalCurrentAmount, Mode=TwoWay}" />
+                            <NumberBox Header="Starting amount" Minimum="0" PlaceholderText="0.00" SpinButtonPlacementMode="Compact" Value="{x:Bind ViewModel.GoalCurrentAmount, Mode=TwoWay}" />
+                            <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="New savings transactions can be linked to this goal. Editing or deleting them updates progress automatically." />
                             <DatePicker Header="Target date" Date="{x:Bind ViewModel.GoalTargetDate, Mode=TwoWay}" />
                             <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Style="{StaticResource PrimaryActionButtonStyle}" Command="{x:Bind ViewModel.AddGoalCommand}" Content="Add savings goal" />
                         </StackPanel>
@@ -662,7 +714,10 @@
                                                     <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" Text="{Binding Name}" />
                                                     <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{Binding DueText}" />
                                                 </StackPanel>
-                                                <Button HorizontalAlignment="Right" Tag="{Binding Id}" AutomationProperties.Name="Delete savings goal" Click="DeleteGoal_Click" ToolTipService.ToolTip="Delete goal"><SymbolIcon Symbol="Delete" /></Button>
+                                                <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="6">
+                                                    <Button Tag="{Binding Id}" AutomationProperties.Name="Add money to savings goal" Click="AddMoneyToGoal_Click" Content="Add money" />
+                                                    <Button Tag="{Binding Id}" AutomationProperties.Name="Delete savings goal" Click="DeleteGoal_Click" ToolTipService.ToolTip="Delete goal"><SymbolIcon Symbol="Delete" /></Button>
+                                                </StackPanel>
                                             </Grid>
                                             <ProgressBar Height="9" Maximum="100" Value="{Binding PercentComplete}" />
                                             <Grid>
@@ -672,6 +727,15 @@
                                                 </StackPanel>
                                                 <TextBlock HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{ThemeResource AppAccentBrush}" Text="{Binding PercentText}" />
                                             </Grid>
+                                            <Grid ColumnSpacing="12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{Binding StartingText}" />
+                                                <TextBlock Grid.Column="1" HorizontalAlignment="Right" Style="{StaticResource SecondaryTextStyle}" Text="{Binding ContributionText}" />
+                                            </Grid>
+                                            <TextBlock FontSize="11" Foreground="{ThemeResource AppAccentBrush}" Text="{Binding MonthContributionText}" />
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
@@ -679,6 +743,135 @@
                         </ItemsControl>
                     </StackPanel>
                 </Grid>
+            </ScrollViewer>
+
+            <!-- Investments -->
+            <ScrollViewer x:Name="InvestmentsView" Grid.Row="1" HorizontalScrollBarVisibility="Auto" Visibility="Collapsed">
+                <StackPanel MinWidth="1040" Margin="30,4,34,28" Spacing="16">
+                    <Border Padding="20" Background="{ThemeResource AppAccentSoftBrush}" BorderBrush="{ThemeResource AppAccentBrush}" BorderThickness="1" CornerRadius="18">
+                        <Grid ColumnSpacing="20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="4">
+                                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Your investment portfolio" />
+                                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="Track contributions and manual valuations locally. MyBudget never guesses market prices or sends financial data online." />
+                            </StackPanel>
+                            <FontIcon Grid.Column="1" VerticalAlignment="Center" FontSize="30" Foreground="{ThemeResource AppAccentBrush}" Glyph="&#xE9D2;" />
+                        </Grid>
+                    </Border>
+
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource CompactCardStyle}"><StackPanel Spacing="7"><TextBlock Style="{StaticResource SecondaryTextStyle}" Text="PORTFOLIO VALUE" /><TextBlock FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" Text="{x:Bind ViewModel.PortfolioValueText, Mode=OneWay}" /><TextBlock Style="{StaticResource SecondaryTextStyle}" Text="Latest manual values" /></StackPanel></Border>
+                        <Border Grid.Column="1" Style="{StaticResource CompactCardStyle}"><StackPanel Spacing="7"><TextBlock Style="{StaticResource SecondaryTextStyle}" Text="CONTRIBUTED" /><TextBlock FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" Text="{x:Bind ViewModel.PortfolioContributedText, Mode=OneWay}" /><TextBlock Style="{StaticResource SecondaryTextStyle}" Text="Linked savings entries" /></StackPanel></Border>
+                        <Border Grid.Column="2" Style="{StaticResource CompactCardStyle}"><StackPanel Spacing="7"><TextBlock Style="{StaticResource SecondaryTextStyle}" Text="GAIN / LOSS" /><TextBlock FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource AppAccentBrush}" Text="{x:Bind ViewModel.PortfolioGainLossText, Mode=OneWay}" /><TextBlock Style="{StaticResource SecondaryTextStyle}" Text="Value minus contributions" /></StackPanel></Border>
+                        <Border Grid.Column="3" Style="{StaticResource CompactCardStyle}"><StackPanel Spacing="7"><TextBlock Style="{StaticResource SecondaryTextStyle}" Text="THIS MONTH" /><TextBlock FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource AppAccentBrush}" Text="{x:Bind ViewModel.PortfolioMonthContributionText, Mode=OneWay}" /><TextBlock Style="{StaticResource SecondaryTextStyle}" Text="New investment savings" /></StackPanel></Border>
+                    </Grid>
+
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="390" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border VerticalAlignment="Top" Style="{StaticResource CardStyle}">
+                            <StackPanel Spacing="12">
+                                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="{x:Bind ViewModel.InvestmentFormTitle, Mode=OneWay}" />
+                                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="Start with a Malaysian favourite or create any custom holding." />
+                                <Grid ColumnSpacing="6" RowSpacing="6">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                    <Button Tag="Tabung Haji" Click="InvestmentTemplate_Click" Content="Tabung Haji" />
+                                    <Button Grid.Column="1" Tag="ASB" Click="InvestmentTemplate_Click" Content="ASB" />
+                                    <Button Grid.Row="1" Tag="Maybank Gold" Click="InvestmentTemplate_Click" Content="Maybank Gold" />
+                                    <Button Grid.Row="1" Grid.Column="1" Tag="Custom" Click="InvestmentTemplate_Click" Content="Custom" />
+                                </Grid>
+                                <TextBox Header="Investment name" MaxLength="80" PlaceholderText="e.g. Tabung Haji" Text="{x:Bind ViewModel.InvestmentName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBox Header="Provider" MaxLength="80" PlaceholderText="e.g. Maybank" Text="{x:Bind ViewModel.InvestmentProvider, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <ComboBox Header="Type" ItemsSource="{x:Bind ViewModel.InvestmentKindOptions}" SelectedItem="{x:Bind ViewModel.InvestmentKind, Mode=TwoWay}" />
+                                <NumberBox Header="Current value (optional)" Minimum="0" PlaceholderText="Leave blank to follow contributions" SpinButtonPlacementMode="Compact" Value="{x:Bind ViewModel.InvestmentCurrentValue, Mode=TwoWay}" />
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <NumberBox Header="Units / grams (optional)" Minimum="0" PlaceholderText="0" SpinButtonPlacementMode="Compact" Value="{x:Bind ViewModel.InvestmentUnits, Mode=TwoWay}" />
+                                    <NumberBox Grid.Column="1" Header="Price per unit" Minimum="0" PlaceholderText="0.00" SpinButtonPlacementMode="Compact" Value="{x:Bind ViewModel.InvestmentUnitPrice, Mode=TwoWay}" />
+                                </Grid>
+                                <DatePicker Header="Valuation date" Date="{x:Bind ViewModel.InvestmentValuationDate, Mode=TwoWay}" />
+                                <TextBox Header="Note" MaxLength="180" PlaceholderText="Optional valuation note" Text="{x:Bind ViewModel.InvestmentNote, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Style="{StaticResource PrimaryActionButtonStyle}" Command="{x:Bind ViewModel.SaveInvestmentCommand}" Content="{x:Bind ViewModel.InvestmentSubmitText, Mode=OneWay}" />
+                                    <Button x:Name="CancelInvestmentEditButton" Grid.Column="1" Command="{x:Bind ViewModel.CancelInvestmentEditCommand}" Content="Cancel" Visibility="Collapsed" />
+                                </Grid>
+                                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="Contributions are added from Transactions as Savings, so cash and portfolio totals stay in sync." />
+                            </StackPanel>
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="12">
+                            <ItemsControl ItemsSource="{x:Bind ViewModel.InvestmentRows}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="0,0,0,10" Style="{StaticResource CardStyle}">
+                                            <StackPanel Spacing="13">
+                                                <Grid>
+                                                    <StackPanel Spacing="2">
+                                                        <TextBlock FontSize="19" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" Text="{Binding Name}" />
+                                                        <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{Binding DetailText}" />
+                                                    </StackPanel>
+                                                    <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="6">
+                                                        <Button Tag="{Binding Id}" Click="AddMoneyToInvestment_Click" Content="Add contribution" />
+                                                        <Button Tag="{Binding Id}" Click="EditInvestment_Click" Content="Update value" />
+                                                        <Button Tag="{Binding Id}" Click="ArchiveInvestment_Click" ToolTipService.ToolTip="Archive investment"><SymbolIcon Symbol="Delete" /></Button>
+                                                    </StackPanel>
+                                                </Grid>
+                                                <Grid ColumnSpacing="14">
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                                    <StackPanel Spacing="3"><TextBlock Style="{StaticResource SecondaryTextStyle}" Text="CURRENT VALUE" /><TextBlock FontSize="21" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" Text="{Binding CurrentValueText}" /></StackPanel>
+                                                    <StackPanel Grid.Column="1" Spacing="3"><TextBlock Style="{StaticResource SecondaryTextStyle}" Text="CONTRIBUTED" /><TextBlock FontSize="18" FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" Text="{Binding ContributedText}" /></StackPanel>
+                                                    <StackPanel Grid.Column="2" Spacing="3"><TextBlock Style="{StaticResource SecondaryTextStyle}" Text="GAIN / LOSS" /><TextBlock FontSize="18" FontWeight="SemiBold" Foreground="{ThemeResource AppAccentBrush}" Text="{Binding GainLossText}" /></StackPanel>
+                                                </Grid>
+                                                <ProgressBar Height="7" Maximum="100" Value="{Binding ContributionValueRatio}" />
+                                                <Grid>
+                                                    <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{Binding ValuationText}" />
+                                                    <TextBlock HorizontalAlignment="Right" Foreground="{ThemeResource AppAccentBrush}" Text="{Binding MonthContributionText}" />
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.ArchivedInvestmentsVisibility, Mode=OneWay}">
+                                <TextBlock Margin="2,8,0,0" Style="{StaticResource SectionTitleStyle}" Text="Archived investments" />
+                                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="Archived holdings keep their contributions and valuations. Restore one whenever you need it again." />
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.ArchivedInvestmentRows}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Margin="0,0,0,8" Padding="14,11" Background="{ThemeResource AppSurfaceMutedBrush}" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1" CornerRadius="12">
+                                                <Grid ColumnSpacing="12">
+                                                    <StackPanel>
+                                                        <TextBlock FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" Text="{Binding Name}" />
+                                                        <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{Binding DetailText}" />
+                                                    </StackPanel>
+                                                    <Button
+                                                        HorizontalAlignment="Right"
+                                                        VerticalAlignment="Center"
+                                                        Tag="{Binding Id}"
+                                                        AutomationProperties.Name="Restore archived investment"
+                                                        Click="RestoreInvestment_Click"
+                                                        Content="Restore" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
             </ScrollViewer>
 
             <!-- Reports -->

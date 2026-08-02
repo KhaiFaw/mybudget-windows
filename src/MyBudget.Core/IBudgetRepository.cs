@@ -37,6 +37,62 @@ public interface IBudgetRepository
         long goalId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Creates or updates an income source. The effective month controls when
+    /// edits begin so already-recorded historical deposits stay unchanged.
+    /// Returns the stored source identifier.
+    /// </summary>
+    Task<long> UpsertRecurringIncomeAsync(
+        RecurringIncome income,
+        BudgetMonth effectiveMonth,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deactivates a recurring source while preserving generated deposits and
+    /// their audit linkage.
+    /// </summary>
+    Task DeleteRecurringIncomeAsync(
+        long id,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Materializes every due recurring deposit through the supplied PC-local
+    /// date. Implementations must be idempotent.
+    /// </summary>
+    Task SynchronizeRecurringIncomeAsync(
+        DateOnly throughDate,
+        CancellationToken cancellationToken = default);
+
+    Task<long> UpsertInvestmentAsync(
+        Investment investment,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Creates or updates an investment and one of its dated valuations as a
+    /// single operation. A zero valuation InvestmentId is replaced with the
+    /// stored investment identifier.
+    /// </summary>
+    Task<long> UpsertInvestmentWithValuationAsync(
+        Investment investment,
+        InvestmentValuation valuation,
+        CancellationToken cancellationToken = default);
+
+    Task ArchiveInvestmentAsync(
+        long id,
+        CancellationToken cancellationToken = default);
+
+    Task UpsertInvestmentValuationAsync(
+        InvestmentValuation valuation,
+        CancellationToken cancellationToken = default);
+
+    Task DeleteInvestmentValuationAsync(
+        Guid id,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<InvestmentPosition>> LoadInvestmentPortfolioAsync(
+        BudgetMonth month,
+        CancellationToken cancellationToken = default);
+
     Task SaveSettingsAsync(
         AppSettings settings,
         CancellationToken cancellationToken = default);

@@ -29,8 +29,8 @@ public static class BudgetCalculator
 
         // Transfers are deliberately absent: moving money between a person's own
         // accounts does not create income, spending, or savings.
-        var available = income - spent - saved;
-        var remainingToPlan = income - planned;
+        var available = snapshot.CarryForward + income - spent - saved;
+        var remainingToPlan = snapshot.CarryForward + income - planned;
 
         var progress = snapshot.Categories
             .OrderBy(category => category.SortOrder)
@@ -54,7 +54,8 @@ public static class BudgetCalculator
             saved,
             available,
             remainingToPlan,
-            progress);
+            progress,
+            snapshot.CarryForward);
     }
 
     private static decimal Sum(
@@ -81,6 +82,10 @@ public static class BudgetCalculator
         ArgumentNullException.ThrowIfNull(snapshot.Categories);
         ArgumentNullException.ThrowIfNull(snapshot.Transactions);
         ArgumentNullException.ThrowIfNull(snapshot.Allocations);
+        ArgumentNullException.ThrowIfNull(snapshot.RecurringIncomes);
+        ArgumentNullException.ThrowIfNull(snapshot.Investments);
+        ArgumentNullException.ThrowIfNull(snapshot.InvestmentValuations);
+        ArgumentNullException.ThrowIfNull(snapshot.InvestmentPositions);
 
         var negativeTransaction = snapshot.Transactions.FirstOrDefault(transaction => transaction.Amount < 0m);
         if (negativeTransaction is not null)
@@ -99,6 +104,13 @@ public static class BudgetCalculator
                 nameof(snapshot),
                 unknownTransaction.Type,
                 "Every transaction must use a supported transaction type.");
+        }
+
+        var invalidDestination = snapshot.Transactions.FirstOrDefault(
+            transaction => !TransactionDestinationRules.IsValid(transaction));
+        if (invalidDestination is not null)
+        {
+            TransactionDestinationRules.Validate(invalidDestination, nameof(snapshot));
         }
 
         var negativeAllocation = snapshot.Allocations.FirstOrDefault(allocation => allocation.PlannedAmount < 0m);

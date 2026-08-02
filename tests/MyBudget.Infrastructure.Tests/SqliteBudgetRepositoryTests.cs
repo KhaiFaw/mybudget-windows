@@ -42,7 +42,11 @@ public sealed class SqliteBudgetRepositoryTests
         var snapshot = await _repository.LoadAsync(July);
 
         CollectionAssert.AreEqual(
-            new[] { "Housing", "Food", "Transport", "Utilities", "Lifestyle", "Savings", "Other" },
+            new[]
+            {
+                "Housing", "Food", "Transport", "Utilities", "Lifestyle", "Savings", "Other",
+                "Salary", "Other income",
+            },
             snapshot.Categories.Select(category => category.Name).ToArray());
         Assert.AreEqual("MYR", snapshot.Settings.CurrencyCode);
         Assert.IsFalse(snapshot.Settings.IsDarkMode);
@@ -59,13 +63,8 @@ public sealed class SqliteBudgetRepositoryTests
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
             command.CommandText = "PRAGMA user_version;";
-            Assert.AreEqual(1L, Convert.ToInt64(await command.ExecuteScalarAsync()));
-
-            command.CommandText = "PRAGMA user_version = 0;";
-            await command.ExecuteNonQueryAsync();
+            Assert.AreEqual(2L, Convert.ToInt64(await command.ExecuteScalarAsync()));
         }
-
-        await _repository.InitializeAsync();
 
         var futurePath = Path.Combine(_temporaryDirectory, "future.db");
         await using (var connection = new SqliteConnection(
@@ -73,7 +72,7 @@ public sealed class SqliteBudgetRepositoryTests
         {
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
-            command.CommandText = "PRAGMA user_version = 2;";
+            command.CommandText = "PRAGMA user_version = 3;";
             await command.ExecuteNonQueryAsync();
         }
 

@@ -40,6 +40,8 @@ public sealed partial class MainPage : Page
     {
         UpdatePaneFooter(RootNavigation.IsPaneOpen);
         UpdateBillEditState();
+        UpdateTransactionEditState();
+        UpdateInvestmentEditState();
         ShowSection("Overview");
         await ViewModel.InitializeAsync();
         StartLocalDateRefreshTimer();
@@ -115,6 +117,7 @@ public sealed partial class MainPage : Page
         TransactionsView.Visibility = section == "Transactions" ? Visibility.Visible : Visibility.Collapsed;
         BillsView.Visibility = section == "Bills" ? Visibility.Visible : Visibility.Collapsed;
         GoalsView.Visibility = section == "Goals" ? Visibility.Visible : Visibility.Collapsed;
+        InvestmentsView.Visibility = section == "Investments" ? Visibility.Visible : Visibility.Collapsed;
         ReportsView.Visibility = section == "Reports" ? Visibility.Visible : Visibility.Collapsed;
         SettingsView.Visibility = section == "Settings" ? Visibility.Visible : Visibility.Collapsed;
         SectionTitle.Text = section;
@@ -154,6 +157,16 @@ public sealed partial class MainPage : Page
         {
             UpdateBillEditState();
         }
+
+        if (args.PropertyName == nameof(MainPageViewModel.IsEditingTransaction))
+        {
+            UpdateTransactionEditState();
+        }
+
+        if (args.PropertyName == nameof(MainPageViewModel.IsEditingInvestment))
+        {
+            UpdateInvestmentEditState();
+        }
     }
 
     private void UpdateBillEditState()
@@ -161,6 +174,26 @@ public sealed partial class MainPage : Page
         if (CancelBillEditButton is not null)
         {
             CancelBillEditButton.Visibility = ViewModel.IsEditingBill
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+    }
+
+    private void UpdateTransactionEditState()
+    {
+        if (CancelTransactionEditButton is not null)
+        {
+            CancelTransactionEditButton.Visibility = ViewModel.IsEditingTransaction
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+    }
+
+    private void UpdateInvestmentEditState()
+    {
+        if (CancelInvestmentEditButton is not null)
+        {
+            CancelInvestmentEditButton.Visibility = ViewModel.IsEditingInvestment
                 ? Visibility.Visible
                 : Visibility.Collapsed;
         }
@@ -208,6 +241,15 @@ public sealed partial class MainPage : Page
         }
     }
 
+    private void EditTransaction_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: Guid id })
+        {
+            ViewModel.BeginEditTransaction(id);
+            NavigateTo("Transactions");
+        }
+    }
+
     private async void DeleteBill_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button { Tag: long id })
@@ -230,6 +272,70 @@ public sealed partial class MainPage : Page
         if (sender is Button { Tag: long id })
         {
             await ViewModel.DeleteGoalAsync(id);
+        }
+    }
+
+    private void AddMoneyToGoal_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: long id })
+        {
+            ViewModel.PrepareSavingsForGoal(id);
+            NavigateTo("Transactions");
+        }
+    }
+
+    private void InvestmentTemplate_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string template })
+        {
+            ViewModel.BeginInvestmentTemplate(template);
+        }
+    }
+
+    private void EditInvestment_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: long id })
+        {
+            ViewModel.BeginEditInvestment(id);
+            NavigateTo("Investments");
+        }
+    }
+
+    private void AddMoneyToInvestment_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: long id })
+        {
+            ViewModel.PrepareSavingsForInvestment(id);
+            NavigateTo("Transactions");
+        }
+    }
+
+    private async void ArchiveInvestment_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: long id })
+        {
+            var confirmation = new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = "Archive this investment?",
+                Content = "Its contributions and valuations will stay safely stored, and you can restore it from the Investments page.",
+                PrimaryButtonText = "Archive",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Close,
+            };
+
+            if (await confirmation.ShowAsync() == ContentDialogResult.Primary)
+            {
+                await ViewModel.ArchiveInvestmentAsync(id);
+            }
+        }
+    }
+
+    private async void RestoreInvestment_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: long id })
+        {
+            await ViewModel.RestoreInvestmentAsync(id);
         }
     }
 

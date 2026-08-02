@@ -1,6 +1,6 @@
 # MyBudget for Windows
 
-MyBudget is a modern, local-first monthly budget planner built for Windows. It helps one person plan income, spending, savings, recurring bills, and goals without creating an account or sending financial data to a cloud service.
+MyBudget is a modern, local-first monthly budget planner built for Windows. It helps one person plan income, spending, savings, recurring bills, goals, and investments without creating an account or sending financial data to a cloud service.
 
 > Source availability: this repository is private and proprietary. A separate public showcase is intended for portfolio viewing. See [COPYRIGHT.md](COPYRIGHT.md).
 
@@ -16,13 +16,15 @@ These are captures from the running native WinUI application using the built-in 
 
 ## Features
 
-- Monthly dashboard with income, planned spending, actual spending, savings, and available money kept separate
+- Monthly dashboard with carry-forward, income, planned spending, actual spending, savings, and available money kept separate
 - PC-local day tracking: the app opens on today, new entries default to today, and an open app follows midnight
-- Editable monthly income total directly on the dashboard without deleting unrelated income entries
+- Recurring monthly income with an editable amount and payday; due deposits are created automatically and never duplicated by a refresh
+- Automatic carry-forward that recalculates the next month's opening money when an earlier transaction changes
 - Category plans with clear over-budget warnings
-- Income, expense, savings, refund, and transfer transaction types
+- Editable income, expense, savings, refund, and transfer transactions with stable income categories such as Salary and Other income
 - Recurring bills with edit controls, nearest-due countdowns, and safe end-of-month handling
-- Savings goals and progress tracking
+- Savings goals whose progress updates automatically from linked savings transactions
+- Investment tracking for Tabung Haji, ASB, Maybank Gold, and user-created investments, with optional valuations, gain/loss summaries, and restorable archives
 - Monthly category reports
 - Persistent light and dark Windows styling
 - Custom multi-resolution Windows icon for the EXE, title bar, and taskbar
@@ -72,4 +74,4 @@ The current app is local-first, but the SQLite database is not encrypted at rest
 
 ## Status
 
-This is an actively developed personal portfolio project. The current Release build passes 61 automated tests and a seven-screen light/dark visual smoke test. See [docs/verification.md](docs/verification.md) for reproducible evidence.
+This is an actively developed personal portfolio project. The current Release build passes 101 automated tests, builds with zero warnings and errors, and provides eight native app screens. See [docs/verification.md](docs/verification.md) for reproducible evidence.

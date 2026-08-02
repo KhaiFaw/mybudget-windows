@@ -16,6 +16,21 @@ public sealed class ModelTests
     }
 
     [TestMethod]
+    public void SavingsGoal_AddsLinkedSavingsToStartingAmount()
+    {
+        var goal = new SavingsGoal(
+            1,
+            "Emergency fund",
+            10_000m,
+            1_500m,
+            LinkedSavingsAmount: 750m);
+
+        Assert.AreEqual(2_250m, goal.CurrentAmount);
+        Assert.AreEqual(7_750m, goal.RemainingAmount);
+        Assert.AreEqual(22.5m, goal.PercentComplete);
+    }
+
+    [TestMethod]
     public void CategoryProgress_HandlesNoPlanWithoutDividingByZero()
     {
         var category = new BudgetCategory(1, "Food", CategoryKind.Expense, "#F97316");
@@ -35,5 +50,9 @@ public sealed class ModelTests
         Assert.IsEmpty(snapshot.Transactions);
         Assert.AreEqual("MYR", snapshot.Settings.CurrencyCode);
         Assert.IsFalse(snapshot.Settings.IsDarkMode);
+        Assert.IsEmpty(snapshot.RecurringIncomes);
+        Assert.IsEmpty(snapshot.Investments);
+        Assert.IsEmpty(snapshot.InvestmentPositions);
+        Assert.AreEqual(0m, snapshot.CarryForward);
     }
 }
