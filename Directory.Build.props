@@ -4,6 +4,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Deterministic>true</Deterministic>
+    <VersionPrefix>1.0.1</VersionPrefix>
     <Authors>KhaiFaw</Authors>
     <Company>KhaiFaw</Company>
     <Product>MyBudget</Product>

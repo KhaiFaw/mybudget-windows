@@ -18,7 +18,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TitleBar x:Name="AppTitleBar" Title="MyBudget" Subtitle="Private and saved locally">
+        <TitleBar x:Name="AppTitleBar" Title="MyBudget" Subtitle="Personal Finance and Budget Analytics Application">
             <TitleBar.IconSource>
                 <ImageIconSource ImageSource="Assets/MyBudget.ico" />
             </TitleBar.IconSource>
