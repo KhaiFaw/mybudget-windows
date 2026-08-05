@@ -1,0 +1,15 @@
+HOW TO OPEN MYBUDGET
+
+1. Extract the entire MyBudget-win-x64.zip file first.
+2. Open the extracted MyBudget-win-x64 folder.
+3. Double-click MyBudget.App.exe.
+
+Keep every file and folder beside MyBudget.App.exe. The app will not work if
+the EXE is moved or copied by itself.
+
+This build is unsigned. Windows may show "Unknown publisher" or a SmartScreen
+warning, especially on another PC. Only use an official MyBudget GitHub release
+or a build created from source you reviewed.
+
+Your budget data stays on this PC under:
+%LOCALAPPDATA%\KhaiFaw\MyBudget

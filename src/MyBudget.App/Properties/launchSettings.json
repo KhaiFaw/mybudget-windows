@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "MyBudget.App (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "MyBudget.App (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

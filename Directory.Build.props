@@ -1,0 +1,18 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>14.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <Authors>KhaiFaw</Authors>
+    <Company>KhaiFaw</Company>
+    <Product>MyBudget</Product>
+    <Copyright>Copyright © 2026 KhaiFaw. All rights reserved.</Copyright>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <!-- Shared Release folders may be distributed. Omit debug paths and symbols
+         from every first-party project so local source locations are not leaked. -->
+    <DebugType>None</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+</Project>

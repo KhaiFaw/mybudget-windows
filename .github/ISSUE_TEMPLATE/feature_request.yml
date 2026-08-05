@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest a focused improvement that fits MyBudget's local-first design.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Feature ideas are welcome. MyBudget is a source-visible proprietary project, so please describe the need and outcome rather than submitting copied code.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or need
+      description: What budgeting task is difficult today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Suggested experience
+      description: Describe how the feature should feel from a user's perspective.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional workarounds or simpler approaches you considered.
+
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Project fit
+      options:
+        - label: This idea can keep financial data local by default.
+          required: true
+        - label: This report contains no personal or financial information.
+          required: true
