@@ -11,5 +11,9 @@ This build is unsigned. Windows may show "Unknown publisher" or a SmartScreen
 warning, especially on another PC. Only use an official MyBudget GitHub release
 or a build created from source you reviewed.
 
+MyBudget is free for personal and other non-commercial use. Redistribution,
+modification, republication, selling, or monetization requires prior written
+permission from KhaiFaw. See LICENSE.md and COPYRIGHT.md in this folder.
+
 Your budget data stays on this PC under:
 %LOCALAPPDATA%\KhaiFaw\MyBudget

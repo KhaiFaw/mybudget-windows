@@ -2,6 +2,14 @@
 
 Notable public releases of MyBudget are recorded here.
 
+## 1.0.2 — 5 August 2026
+
+### Changed
+
+- Granted personal and other non-commercial use under the PolyForm Strict License 1.0.0
+- Clarified that modification, redistribution, republication, selling, and monetization require prior written permission
+- Added the license, permission summary, and creator terms to the repository, app Settings screen, and downloadable package
+
 ## 1.0.1 — 5 August 2026
 
 ### Changed

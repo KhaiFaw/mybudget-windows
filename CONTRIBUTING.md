@@ -19,9 +19,9 @@ Security-sensitive problems should not be filed as public issues; follow [SECURI
 
 ## Source contributions
 
-This is a source-visible proprietary portfolio project, not an open-source project. It does not currently accept unsolicited pull requests or copied implementations.
+This is a source-available personal-use portfolio project, not an open-source project. It does not currently accept unsolicited pull requests or copied implementations.
 
-If the maintainer explicitly invites a contribution, agree on its scope and written terms before submitting code. Submission does not override the copyright and source-use terms in [COPYRIGHT.md](COPYRIGHT.md).
+If the maintainer explicitly invites a contribution, agree on its scope and written terms before submitting code. Submission does not override [LICENSE.md](LICENSE.md) or the [copyright and permission summary](COPYRIGHT.md).
 
 ## Project expectations
 

@@ -1,6 +1,6 @@
 # Third-party software notices
 
-MyBudget is proprietary software, but it is built with third-party components that remain under their own licenses.
+MyBudget is source-available software licensed under PolyForm Strict 1.0.0, but it is built with third-party components that remain under their own licenses.
 
 The self-contained Windows release includes components from these projects:
 

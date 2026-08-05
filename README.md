@@ -15,11 +15,11 @@
   <a href="https://github.com/KhaiFaw/mybudget-windows/actions/workflows/ci.yml"><img src="https://github.com/KhaiFaw/mybudget-windows/actions/workflows/ci.yml/badge.svg" alt="Windows build and tests" /></a>
   <img src="https://img.shields.io/badge/platform-Windows%2010%2F11-0078D4" alt="Windows 10 and 11" />
   <img src="https://img.shields.io/badge/.NET-10.0-512BD4" alt=".NET 10" />
-  <img src="https://img.shields.io/badge/license-All%20Rights%20Reserved-555555" alt="All Rights Reserved" />
+  <img src="https://img.shields.io/badge/license-PolyForm%20Strict%201.0.0-6F42C1" alt="PolyForm Strict License 1.0.0" />
 </p>
 
 > [!IMPORTANT]
-> This repository is public for portfolio review, but it is **not open source**. Copyright © 2026 KhaiFaw. All rights reserved. Public visibility does not grant permission to copy, modify, redistribute, publish, or reuse the source. See [COPYRIGHT.md](COPYRIGHT.md).
+> MyBudget is free to download and use for **personal and other non-commercial purposes** under the [PolyForm Strict License 1.0.0](LICENSE.md). It is source-available, not open source: modification, redistribution, republication, selling, and monetization require prior written permission. Sharing a link to this official repository or its releases is welcome. See the [plain-language permission summary](COPYRIGHT.md).
 
 ## Preview
 
@@ -150,6 +150,7 @@ See [docs/verification.md](docs/verification.md) for the dated evidence, scope, 
 - For bug reports and feature ideas, read [CONTRIBUTING.md](CONTRIBUTING.md).
 - For security concerns, follow [SECURITY.md](SECURITY.md) and avoid publishing sensitive details.
 - For dependency licenses, see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
-- For source-use permission, contact the copyright holder. No open-source license is granted.
+- For personal-use and source terms, read [LICENSE.md](LICENSE.md) and the [plain-language permission summary](COPYRIGHT.md).
+- For commercial use, modification, or republication permission, contact the copyright holder through the [KhaiFaw GitHub profile](https://github.com/KhaiFaw).
 
-Copyright © 2026 KhaiFaw. All rights reserved.
+Copyright © 2026 KhaiFaw. MyBudget is available for non-commercial use under the PolyForm Strict License 1.0.0.

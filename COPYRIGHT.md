@@ -1,13 +1,25 @@
-# Copyright and source-use notice
+# MyBudget copyright and permission summary
 
 Copyright (c) 2026 KhaiFaw. All rights reserved.
 
-This repository is publicly viewable for portfolio review, but its source code remains proprietary. Public access does not place the work in the public domain and does not make it open source.
+MyBudget is source-available software licensed under the [PolyForm Strict License 1.0.0](LICENSE.md). It is not open-source software.
 
-Except for the limited rights required by GitHub's Terms of Service to host and display the repository, no permission is granted to copy, modify, distribute, sublicense, publish, deploy, sell, or otherwise use the source code or substantial portions of it without prior written permission from the copyright holder.
+## What you may do
 
-Additional review or source-use permission may be granted in writing on a case-by-case basis. Any permission is limited to the terms supplied with it; access does not transfer ownership or create a broader license.
+- Download and install an official MyBudget release.
+- Use an unmodified copy for personal or other non-commercial purposes.
+- View the source in this repository for portfolio review, learning, or security review.
+- Share a link to the official repository or release page.
+
+## What requires prior written permission
+
+- Selling, renting, sublicensing, monetizing, or using MyBudget as part of a paid product or service.
+- Re-uploading, mirroring, bundling, republishing, or otherwise redistributing the source code or compiled application.
+- Modifying MyBudget, creating derivative versions, or publishing a modified build.
+- Removing the copyright or creator attribution, or presenting MyBudget as someone else's work.
+
+Contact the copyright holder through the [KhaiFaw GitHub profile](https://github.com/KhaiFaw) to request commercial, modification, or redistribution permission.
+
+This page is a plain-language summary. The terms in [LICENSE.md](LICENSE.md) control if this summary differs from them. Rights provided by applicable law, including fair use or fair dealing where relevant, are not restricted.
 
 Third-party dependencies remain subject to their own licenses. Product names and trademarks belong to their respective owners.
-
-Contact the copyright holder through the [KhaiFaw GitHub profile](https://github.com/KhaiFaw) to request permission.
