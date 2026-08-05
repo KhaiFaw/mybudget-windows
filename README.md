@@ -1,7 +1,7 @@
 # MyBudget
 
 <p align="center">
-  <img src="src/MyBudget.App/Assets/MyBudgetIconMaster-v2.png" alt="MyBudget wallet and chart app icon" width="112" />
+  <img src="docs/media/mybudget-logo-reveal.gif" alt="Animated MyBudget logo reveal that resolves into the wallet and chart app icon" width="440" />
 </p>
 
 <p align="center"><strong>Personal Finance and Budget Analytics Application</strong></p>
