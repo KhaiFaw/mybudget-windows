@@ -1,6 +1,6 @@
 # Verification record
 
-Verified on Windows x64 on 2 August 2026 with .NET SDK 10.0.302.
+Verified on Windows x64 on 5 August 2026 with .NET SDK 10.0.302.
 
 ## Automated checks
 
@@ -28,7 +28,7 @@ The updated Release executable was launched from an isolated data directory and 
 
 The earlier seven-area visual pass confirmed light and dark rendering, saved theme preference, the PC-local date banner and transaction date, recurring-bill add/edit flow, next-due countdowns, KF mark, title-bar icon, and screen-reader automation names for the main controls. The current app initialized and remained running against isolated data, but the desktop-inspection helper could not attach to its unpackaged window; this record therefore does not claim a click-through of the new income-delete dialog.
 
-Existing portfolio screenshots and the initial updated launch smoke test use an isolated database selected with `MYBUDGET_DATA_DIRECTORY`. The live migration was run only after creating a byte-for-byte pre-version-two backup in the normal data directory.
+Existing portfolio screenshots and launch smoke tests use an isolated database selected with `MYBUDGET_DATA_DIRECTORY`. The version-three migration was also tested on a copy of the existing database after creating a byte-for-byte pre-version-three backup; public-release verification did not need to modify the live database.
 
 ## Data-safety review
 

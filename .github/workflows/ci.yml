@@ -1,9 +1,13 @@
-name: Windows build and tests
+name: Windows CI
 
 on:
   push:
-    branches: [main, "codex/**"]
+    branches: [main]
   pull_request:
+
+concurrency:
+  group: windows-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -15,10 +19,10 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: 10.0.302
 
@@ -30,6 +34,9 @@ jobs:
 
       - name: Test local persistence
         run: dotnet test tests/MyBudget.Infrastructure.Tests/MyBudget.Infrastructure.Tests.csproj --configuration Release
+
+      - name: Verify formatting
+        run: dotnet format MyBudget.slnx --verify-no-changes --no-restore
 
       - name: Build Windows app
         run: dotnet build src/MyBudget.App/MyBudget.App.csproj --configuration Release --no-restore -p:Platform=x64 -p:RuntimeIdentifier=win-x64
