@@ -2,6 +2,13 @@
 
 Notable public releases of MyBudget are recorded here.
 
+## 1.0.1 — 5 August 2026
+
+### Changed
+
+- Added “Personal Finance and Budget Analytics Application” as MyBudget's professional subtitle in the app title bar and public portfolio presentation
+- Added the same descriptor to Windows package and executable metadata while keeping the product name, repository, and executable identity unchanged
+
 ## 1.0.0 — 5 August 2026
 
 First public portfolio release of the local-first Windows budget planner.

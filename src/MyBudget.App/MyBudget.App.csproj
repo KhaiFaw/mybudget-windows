@@ -4,6 +4,8 @@
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>MyBudget.App</RootNamespace>
+    <AssemblyTitle>MyBudget</AssemblyTitle>
+    <Description>Personal Finance and Budget Analytics Application for Windows</Description>
     <ApplicationIcon>Assets\MyBudget.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x86;x64;ARM64</Platforms>

@@ -1,8 +1,10 @@
-# MyBudget — Windows monthly budget planner
+# MyBudget
 
 <p align="center">
   <img src="src/MyBudget.App/Assets/MyBudgetIconMaster-v2.png" alt="MyBudget wallet and chart app icon" width="112" />
 </p>
+
+<p align="center"><strong>Personal Finance and Budget Analytics Application</strong></p>
 
 <p align="center">
   A modern, local-first Windows app for planning a month, recording real spending,<br />
