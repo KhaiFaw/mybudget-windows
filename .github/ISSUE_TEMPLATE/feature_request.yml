@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Feature ideas are welcome. MyBudget is a source-visible proprietary project, so please describe the need and outcome rather than submitting copied code.
+        Feature ideas are welcome. MyBudget is a source-available personal-use project, so please describe the need and outcome rather than submitting copied code.
 
   - type: textarea
     id: problem

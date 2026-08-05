@@ -973,6 +973,13 @@
                             <Button HorizontalAlignment="Left" Command="{x:Bind ViewModel.SeedDemoDataCommand}" Content="Load example budget" />
                         </StackPanel>
                     </Border>
+                    <Border Style="{StaticResource CardStyle}">
+                        <StackPanel Spacing="6">
+                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="About MyBudget" />
+                            <TextBlock FontWeight="SemiBold" Foreground="{ThemeResource AppTextPrimaryBrush}" Text="Personal Finance and Budget Analytics Application" />
+                            <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="Created by KhaiFaw. Free for personal and other non-commercial use. Redistribution, modification, or commercial use requires prior written permission." />
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
 
