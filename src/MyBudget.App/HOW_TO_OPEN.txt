@@ -1,7 +1,7 @@
 HOW TO OPEN MYBUDGET
 
-1. Extract the entire MyBudget-win-x64.zip file first.
-2. Open the extracted MyBudget-win-x64 folder.
+1. Extract the entire MyBudget-v1.1.0-win-x64.zip file first.
+2. Open the extracted folder containing MyBudget.App.exe.
 3. Double-click MyBudget.App.exe.
 
 Keep every file and folder beside MyBudget.App.exe. The app will not work if
@@ -15,5 +15,13 @@ MyBudget is free for personal and other non-commercial use. Redistribution,
 modification, republication, selling, or monetization requires prior written
 permission from KhaiFaw. See LICENSE.md and COPYRIGHT.md in this folder.
 
-Your budget data stays on this PC under:
+Your budget data is stored on this PC under:
 %LOCALAPPDATA%\KhaiFaw\MyBudget
+
+Statement import is local and requires review before saving. Optional Notion
+sharing sends only the monthly summary you preview and approve, not purchases
+or statement PDFs. No Notion connection is preconfigured.
+
+Existing users: this version keeps the same local data folder. Use Settings to
+back up your database before updating. Private planning profiles/history and
+Notion settings are separate files; a database backup does not include them.

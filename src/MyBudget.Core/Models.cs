@@ -61,7 +61,29 @@ public sealed record RecurringBill(
     long? CategoryId,
     bool IsActive = true,
     DateOnly? StartDate = null,
-    DateOnly? EndDate = null);
+    DateOnly? EndDate = null)
+{
+    // Existing bills begin payment tracking in the upgrade month. We cannot
+    // infer whether older bills were paid before this feature existed.
+    public DateOnly? PaymentTrackingStart { get; init; }
+}
+
+public sealed record BillPayment(
+    long BillId,
+    BudgetMonth Month,
+    DateOnly DueDate,
+    DateOnly PaidOn,
+    decimal Amount);
+
+public sealed record MonthlyBillStatus(
+    RecurringBill Bill,
+    BudgetMonth Month,
+    DateOnly DueDate,
+    BillPayment? Payment)
+{
+    public bool IsPaid => Payment is not null;
+    public decimal Amount => Payment?.Amount ?? Bill.Amount;
+}
 
 /// <summary>
 /// The next concrete occurrence of a recurring bill relative to a selected
@@ -171,6 +193,8 @@ public sealed record BudgetSnapshot(
     IReadOnlyList<InvestmentPosition> InvestmentPositions,
     decimal CarryForward)
 {
+    public IReadOnlyList<BillPayment> BillPayments { get; init; } = [];
+
     /// <summary>
     /// Backwards-compatible constructor for callers that do not yet need the
     /// recurring-income and investment views.

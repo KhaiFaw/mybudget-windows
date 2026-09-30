@@ -8,7 +8,7 @@
 
 <p align="center">
   A modern, local-first Windows app for planning a month, recording real spending,<br />
-  carrying money forward, and connecting everyday savings to goals and investments.
+  carrying money forward, and connecting everyday savings to meaningful goals.
 </p>
 
 <p align="center">
@@ -21,44 +21,63 @@
 > [!IMPORTANT]
 > MyBudget is free to download and use for **personal and other non-commercial purposes** under the [PolyForm Strict License 1.0.0](LICENSE.md). It is source-available, not open source: modification, redistribution, republication, selling, and monetization require prior written permission. Sharing a link to this official repository or its releases is welcome. See the [plain-language permission summary](COPYRIGHT.md).
 
+## Download and project status
+
+[Download MyBudget 1.1.0 for Windows x64](https://github.com/KhaiFaw/mybudget-windows/releases/tag/v1.1.0). Extract the entire ZIP before opening `MyBudget.App.exe`; keep the included files together.
+
+Active development is paused for now. The project remains available for portfolio review and personal non-commercial use. This is a personal project, not a bank-connected service; the supported statement layout and Notion setup limitations are described below.
+
 ## Preview
 
 | Light overview | Dark bills |
 |---|---|
 | ![MyBudget dashboard in light mode](docs/screenshots/mybudget-dashboard-light.png) | ![MyBudget recurring bills in dark mode](docs/screenshots/mybudget-bills-dark.png) |
 
-The screenshots come from the running native WinUI app and use its built-in synthetic Malaysian-ringgit budget. They contain no personal financial information.
+These screenshots show the earlier public release. Version 1.1.0 has a quieter five-area layout. Portfolio screenshots use synthetic data only, never personal statements or salary figures.
 
 ## What MyBudget handles
 
-- A monthly dashboard that keeps carry-forward, income, planned money, spending, savings, and available cash distinct
+- A calm Today dashboard, five primary navigation areas and entry forms that open only when needed
 - PC-local day tracking: the app opens on the current month, new entries default to today, and an open app refreshes after midnight
 - Recurring monthly income with a payday, duplicate-safe automatic deposits, and per-month editing or deletion of posted income
 - Automatic carry-forward that recalculates future months after an earlier transaction changes
 - Editable income, expense, savings, refund, and transfer transactions, with dedicated income categories
 - Category-level monthly plans and clear over-budget feedback
-- Editable recurring bills, nearest-due countdowns, and safe handling for due days from the 29th to the 31st
+- Private future-planning scenarios: preserved original figures, current/proposed/confirmed subscription comparisons, a separate first-month envelope, calendar food adjustments, nullable unknown costs, and actual-payslip recalculation
+- Descriptive needs/wants/savings percentages with a separate buffer, pre-payday commitment cautions, and a separate 50/30/20 rule for additional recurring income
+- Editable recurring bills with monthly paid checkmarks, undo, finished-month summaries, next-unpaid countdowns, and safe handling for due days from the 29th to the 31st
 - Savings goals that stay synchronized with linked savings transactions
-- Investment tracking for Tabung Haji, ASB, Maybank Gold, and custom holdings, including contributions, valuations, gain/loss, archives, and restore
+- Local Maybank savings/current-account PDF import with a review step, complete balance checks, possible-duplicate warnings and goal-linked savings
+- Optional monthly-summary sharing to Notion, with a full preview before every manual send; no individual purchases or PDFs are shared
 - Category and monthly reports
 - Remembered light or dark mode and selectable display currencies: MYR, USD, SGD, EUR, GBP, and AUD
 - Local SQLite persistence, full database backup, and transaction CSV import/export
 - A synthetic example budget for safe exploration and screenshots
 
-There is no account, advertising, analytics, telemetry, bank connection, or cloud synchronization.
+No MyBudget account, advertising, analytics, telemetry, AI processing, bank login or automatic cloud synchronization is required. Notion sharing is optional and manual. The manual Investments screen has been retired because no supported complete automatic holdings connection was verified; existing investment records remain in local backups.
 
 ## Product tour
 
 | Screen | What it does |
 |---|---|
-| **Overview** | Summarizes carry-forward, recurring income, plans, spending, savings, and available cash |
-| **Plan** | Sets category allocations and highlights over-budget categories |
-| **Transactions** | Records, backdates, edits, and deletes money entries; routes savings to a goal or investment |
-| **Bills** | Manages recurring commitments and shows the nearest due date as a day countdown |
+| **Today** | Shows available money, income/spending/savings, bill progress and recent activity; expands the income schedule when needed |
+| **Budget** | Sets category allocations and highlights over-budget categories |
+| **Budget → Future plan** | Compares private estimates without posting income or spending; preserves the original baseline and accepts actual payslip figures later |
+| **Activity** | Records, backdates, edits, deletes and imports money entries; routes savings to a goal |
+| **Bills** | Checks off each month's paid bills; shows completion and the next unpaid due date, including next month |
 | **Goals** | Tracks targets from starting balances plus linked savings transactions |
-| **Investments** | Tracks supported and custom holdings, contributions, dated valuations, and gain/loss |
-| **Reports** | Summarizes activity by category and month |
-| **Settings** | Saves theme and currency preferences; provides backup, CSV, and example-data tools |
+| **Budget → Insights** | Summarizes activity by category and month |
+| **Settings** | Theme/currency, backup, CSV, statement import, optional Notion summaries and synthetic example data |
+
+### Import a Maybank statement
+
+Choose **Import statement** on Today or **Import Maybank statement** in Activity. Select a complete statement PDF or paste its local file path. After validation, select the rows you want, review types/categories and possible duplicates, and confirm. Savings can be linked directly to goals. The opening balance is **not** automatically treated as income, and bills are not automatically marked paid.
+
+The importer supports the tested Maybank savings-account signed-amount layout and structurally matching current-account statements. Scans, credit-card statements and other layouts are not yet supported. Unsupported or unbalanced documents add nothing. This is local statement import, not a live bank connection. See [privacy and safeguards](docs/privacy.md).
+
+### Send a monthly summary to Notion
+
+In **Settings → Notion · Monthly summaries**, follow the linked Notion setup guide, grant an internal connection access to a dedicated parent page, and save its page link and token inside the app. Choose the month, preview the complete totals, then explicitly send. The credential is encrypted for your Windows user, never embedded in the application or Git. A subsequent send updates the same month's app-owned summary block and leaves unrelated page content alone. No live connection is preconfigured in the downloadable app.
 
 ## Engineering highlights
 
@@ -70,7 +89,7 @@ There is no account, advertising, analytics, telemetry, bank connection, or clou
 - Derived carry-forward calculations that respond to historical corrections
 - Destination rules that prevent one savings transaction from being counted toward both a goal and an investment
 - GitHub Actions validation on Windows
-- 105 automated tests: 65 budget/domain tests and 40 SQLite/schema/CSV tests
+- 185 automated checks: 100 domain/privacy rules and 85 persistence/import/connection checks (one private-PDF integration check is opt-in and is skipped without a local fixture)
 
 ```mermaid
 flowchart LR
@@ -127,9 +146,11 @@ Icon sources and the repeatable Windows-asset conversion command are documented 
 
 ## Local data and privacy
 
-The app stores its database under `%LOCALAPPDATA%\KhaiFaw\MyBudget`. Financial data stays on the Windows PC unless the user deliberately exports or backs it up.
+The app stores its database under `%LOCALAPPDATA%\KhaiFaw\MyBudget`. Financial data stays on the Windows PC unless the user deliberately exports, backs it up, or sends a previewed monthly summary to Notion.
 
-The SQLite database, CSV exports, and backups are **not encrypted by MyBudget**. Protect the Windows account and device, and treat copied backup/export files as sensitive. Read [docs/privacy.md](docs/privacy.md) before entering sensitive notes or sharing a backup.
+Optional planning figures live in `planning-profile.json` beside the database, with previous versions in `planning-history`. They are not shipped in the app or stored in the public source. A planning scenario never creates a transaction or assumes an unknown amount is zero. See [private planning scenarios](docs/planning.md) for the profile format and calculation assumptions.
+
+The SQLite database, private planning profiles/history, CSV exports, and backups are **not encrypted by MyBudget**. Protect the Windows account and device, and treat copied backup/export files as sensitive. Read [docs/privacy.md](docs/privacy.md) before entering sensitive notes or sharing a backup.
 
 No real database, export, backup, secret, signing certificate, or build output is tracked by Git.
 
@@ -137,9 +158,9 @@ No real database, export, backup, secret, signing certificate, or build output i
 
 The latest verification record covers:
 
-- **105 tests passed:** 65 core/domain tests and 40 infrastructure tests
+- **185 checks passed locally:** 100 core/domain tests and 85 infrastructure checks, including an optional private-PDF validation (184 pass and one is skipped without that fixture)
 - **Release x64 build:** zero warnings and zero errors
-- **Eight native screens:** Overview, Plan, Transactions, Bills, Goals, Investments, Reports, and Settings
+- **Five daily areas:** Today, Activity, Bills, Budget and Goals, plus nested Future plan/Insights and Settings
 - Schema upgrades, recurring-income safety, carry-forward corrections, backups, CSV round trips, settings, and destination rules
 
 See [docs/verification.md](docs/verification.md) for the dated evidence, scope, and testing limitations.

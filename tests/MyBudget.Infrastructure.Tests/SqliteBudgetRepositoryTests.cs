@@ -63,7 +63,7 @@ public sealed class SqliteBudgetRepositoryTests
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
             command.CommandText = "PRAGMA user_version;";
-            Assert.AreEqual(3L, Convert.ToInt64(await command.ExecuteScalarAsync()));
+            Assert.AreEqual(4L, Convert.ToInt64(await command.ExecuteScalarAsync()));
         }
 
         var futurePath = Path.Combine(_temporaryDirectory, "future.db");
@@ -72,7 +72,7 @@ public sealed class SqliteBudgetRepositoryTests
         {
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
-            command.CommandText = "PRAGMA user_version = 4;";
+            command.CommandText = "PRAGMA user_version = 5;";
             await command.ExecuteNonQueryAsync();
         }
 
@@ -228,7 +228,7 @@ public sealed class SqliteBudgetRepositoryTests
         Assert.AreEqual(new DateOnly(2026, 7, 2), income.Date);
         Assert.AreEqual(3_500m, income.Amount);
         Assert.AreEqual("Updated income", income.Note);
-        Assert.AreEqual(updatedBill, Assert.ContainsSingle(snapshot.Bills));
+        Assert.AreEqual(updatedBill, Assert.ContainsSingle(snapshot.Bills) with { PaymentTrackingStart = null });
     }
 
     [TestMethod]
