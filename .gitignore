@@ -10,8 +10,13 @@ TestResults/
 *.db
 *.db-shm
 *.db-wal
+planning-profile.json
+planning-history/
 backups/
 exports/
+statements/
+notion-connection.json
+tmp/pdfs/
 
 # Packaging and signing
 *.appx

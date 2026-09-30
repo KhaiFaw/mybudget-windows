@@ -21,7 +21,11 @@ public sealed partial class MainWindow : Window
         {
             AppWindow.SetIcon(iconPath);
         }
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(1480, 920));
+        var display = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(
+            AppWindow.Id, Microsoft.UI.Windowing.DisplayAreaFallback.Primary);
+        var width = display is null ? 1480 : Math.Min(1480, Math.Max(640, display.WorkArea.Width - 32));
+        var height = display is null ? 920 : Math.Min(920, Math.Max(480, display.WorkArea.Height - 32));
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(width, height));
 
         // Navigate the root frame to the main page on startup.
         RootFrame.Navigate(typeof(MainPage));

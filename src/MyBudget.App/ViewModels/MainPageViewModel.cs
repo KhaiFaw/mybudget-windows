@@ -109,8 +109,11 @@ public sealed class MainPageViewModel : ObservableObject
     public ObservableCollection<CategoryOption> BillCategoryOptions { get; } = [];
     public ObservableCollection<CategoryBudgetRow> CategoryRows { get; } = [];
     public ObservableCollection<TransactionRow> Transactions { get; } = [];
+    public IEnumerable<TransactionRow> RecentTransactions => Transactions.Take(5);
+    public BudgetSnapshot CurrentSnapshot => _snapshot;
     public ObservableCollection<SavingsDestinationOption> SavingsDestinations { get; } = [];
     public ObservableCollection<BillRow> Bills { get; } = [];
+    public ObservableCollection<BillRow> UpcomingBills { get; } = [];
     public ObservableCollection<GoalRow> Goals { get; } = [];
     public ObservableCollection<InvestmentRow> InvestmentRows { get; } = [];
     public ObservableCollection<ArchivedInvestmentRow> ArchivedInvestmentRows { get; } = [];
@@ -143,6 +146,12 @@ public sealed class MainPageViewModel : ObservableObject
     public string LocalSaveText => IsBusy ? "Saving…" : StatusText;
     public Visibility EmptyTransactionsVisibility => Transactions.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     public Visibility EmptyBillsVisibility => Bills.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility EmptyUpcomingBillsVisibility => UpcomingBills.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public bool CanManageBills => !IsBusy;
+    public string BillsHeadingText => $"Bills · {SelectedMonthText}";
+    public string BillsCompletionText { get; private set; } = string.Empty;
+    public string CurrentBillsCompletionText { get; private set; } = string.Empty;
+    public string NextBillText { get; private set; } = string.Empty;
     public Visibility EmptyGoalsVisibility => Goals.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     public Visibility StatusErrorVisibility => StatusIsError ? Visibility.Visible : Visibility.Collapsed;
     public bool IsEditingBill => _billBeingEdited is not null;
@@ -152,7 +161,7 @@ public sealed class MainPageViewModel : ObservableObject
     public bool IsEditingPostedIncome => _transactionBeingEdited?.RecurringIncomeId is not null;
     public string TransactionFormTitle => IsEditingPostedIncome
         ? "Edit income received"
-        : IsEditingTransaction ? "Edit transaction" : "Daily money entry";
+        : IsEditingTransaction ? "Edit transaction" : "+ Add a transaction";
     public string TransactionSubmitText => IsEditingPostedIncome
         ? "Save income changes"
         : IsEditingTransaction ? "Save changes" : "Add transaction";
@@ -175,6 +184,7 @@ public sealed class MainPageViewModel : ObservableObject
             if (SetProperty(ref _isBusy, value))
             {
                 OnPropertyChanged(nameof(LocalSaveText));
+                OnPropertyChanged(nameof(CanManageBills));
                 NotifyCommandCanExecuteChanged();
             }
         }
@@ -702,6 +712,19 @@ public sealed class MainPageViewModel : ObservableObject
         }
     }
 
+    public async Task ToggleBillPaymentAsync(BillRow row)
+    {
+        var today = BudgetDateSelection.GetLocalToday();
+        await RunAndReloadAsync(
+            () => row.IsPaid
+                ? _repository.UndoBillPaymentAsync(row.Id, row.Month)
+                : _repository.MarkBillPaidAsync(row.Id, row.Month, today),
+            row.IsPaid
+                ? $"{row.Name} · {FormatMonth(row.Month)} marked unpaid"
+                : $"{row.Name} · {FormatMonth(row.Month)} marked paid; no transaction was added",
+            "We couldn't update that bill's payment status.");
+    }
+
     public async Task DeleteGoalAsync(long id) => await RunAndReloadAsync(
         () => _repository.DeleteSavingsGoalAsync(id),
         "Goal deleted",
@@ -731,6 +754,24 @@ public sealed class MainPageViewModel : ObservableObject
         {
             StatusText = $"Imported {importResult.ImportedCount}; skipped {importResult.SkippedCount}";
         }
+    }
+
+    public Task<BudgetSnapshot> LoadImportMonthAsync(BudgetMonth month) => _repository.LoadAsync(month);
+
+    public async Task ImportStatementAsync(BudgetMonth month, IReadOnlyList<BudgetTransaction> entries)
+    {
+        if (IsEditingTransaction)
+        {
+            SetError("Save or cancel your transaction edit before importing a statement.");
+            return;
+        }
+        StatementImportResult? result = null;
+        var imported = await RunAndReloadAsync(async () =>
+        {
+            result = await _repository.ImportStatementEntriesAsync(entries);
+        }, "Statement entries imported", "We couldn't import those entries. Nothing was partially imported.", month);
+        if (imported && !StatusIsError && result is not null)
+            StatusText = $"Imported {result.ImportedCount}; {result.DuplicateCount} already present. Opening balance and bill checkmarks were left unchanged.";
     }
 
     private async Task ChangeToCurrentMonthAsync()
@@ -1114,8 +1155,11 @@ public sealed class MainPageViewModel : ObservableObject
             Convert.ToInt32(BillDueDay),
             SelectedBillCategory?.Id,
             originalBill?.IsActive ?? true,
-            originalBill?.StartDate,
-            originalBill?.EndDate);
+            originalBill is null ? _selectedMonth.FirstDay : originalBill.StartDate,
+            originalBill?.EndDate)
+        {
+            PaymentTrackingStart = originalBill?.PaymentTrackingStart ?? _selectedMonth.FirstDay
+        };
 
         var saved = await RunAndReloadAsync(
             () => _repository.UpsertRecurringBillAsync(bill),
@@ -1329,15 +1373,52 @@ public sealed class MainPageViewModel : ObservableObject
 
     private void RefreshBills(BudgetSnapshot snapshot)
     {
-        var upcomingBills = RecurringDateCalculator.GetUpcomingBills(snapshot.Bills, _localToday);
-        Replace(Bills, upcomingBills.Select(item => new BillRow(
+        var upcomingBills = BillPaymentCalculator.GetNextUnpaidBills(snapshot.Bills, snapshot.BillPayments, _localToday);
+        var monthlyBills = BillPaymentCalculator.GetMonth(snapshot.Bills, snapshot.BillPayments, _selectedMonth);
+        Replace(UpcomingBills, upcomingBills.Select(item => new BillRow(
             item.Bill.Id,
+            BudgetMonth.FromDate(item.DueDate),
             item.Bill.Name,
             $"Due {item.DueDate:dd MMM yyyy}",
             snapshot.Categories.FirstOrDefault(category => category.Id == item.Bill.CategoryId)?.Name ?? "Uncategorised",
             FormatMoney(item.Bill.Amount),
             FormatCountdown(item.DaysUntilDue))));
+        Replace(Bills, monthlyBills.Select(item =>
+        {
+            var next = upcomingBills.FirstOrDefault(upcoming => upcoming.Bill.Id == item.Bill.Id);
+            var paymentText = item.Payment is { } payment
+                ? $"✓ {(payment.PaidOn < payment.DueDate ? "Paid early" : payment.PaidOn == payment.DueDate ? "Paid on time" : "Paid late")} · {payment.PaidOn:dd MMM yyyy}"
+                : FormatCountdown(RecurringDateCalculator.GetDaysUntilDue(_localToday, item.DueDate));
+            return new BillRow(item.Bill.Id, item.Month, item.Bill.Name,
+                $"Due {item.DueDate:dd MMM yyyy}",
+                snapshot.Categories.FirstOrDefault(category => category.Id == item.Bill.CategoryId)?.Name ?? "Uncategorised",
+                FormatMoney(item.Amount), paymentText, item.IsPaid,
+                item.IsPaid && next is not null ? $"Next unpaid: {next.DueDate:dd MMM yyyy} · {FormatCountdown(next.DaysUntilDue)}" : string.Empty);
+        }));
+
+        BillsCompletionText = FormatBillCompletion(monthlyBills, _selectedMonth);
+        var currentMonth = BudgetMonth.FromDate(_localToday);
+        CurrentBillsCompletionText = FormatBillCompletion(
+            BillPaymentCalculator.GetMonth(snapshot.Bills, snapshot.BillPayments, currentMonth), currentMonth);
+        var nearest = upcomingBills.FirstOrDefault();
+        NextBillText = nearest is null
+            ? "No unpaid scheduled bills ahead."
+            : $"{(nearest.DaysUntilDue < 0 ? "Oldest unpaid bill" : "Next unpaid bill")}: {nearest.Bill.Name} · {nearest.DueDate:dd MMM yyyy} · {FormatCountdown(nearest.DaysUntilDue)}";
         OnPropertyChanged(nameof(EmptyBillsVisibility));
+        OnPropertyChanged(nameof(EmptyUpcomingBillsVisibility));
+        OnPropertyChanged(nameof(BillsHeadingText));
+        OnPropertyChanged(nameof(BillsCompletionText));
+        OnPropertyChanged(nameof(CurrentBillsCompletionText));
+        OnPropertyChanged(nameof(NextBillText));
+    }
+
+    private static string FormatBillCompletion(IReadOnlyList<MonthlyBillStatus> bills, BudgetMonth month)
+    {
+        if (bills.Count == 0) return $"No bills scheduled for {FormatMonth(month)}.";
+        var paid = bills.Count(bill => bill.IsPaid);
+        return paid == bills.Count
+            ? $"✓ Finished for {FormatMonth(month)} · {paid} of {bills.Count} paid"
+            : $"{FormatMonth(month)} · {paid} of {bills.Count} paid · {bills.Count - paid} remaining";
     }
 
     private void ResetBillForm()
@@ -1510,10 +1591,8 @@ public sealed class MainPageViewModel : ObservableObject
         options.AddRange(snapshot.Goals
             .OrderBy(goal => goal.Name)
             .Select(goal => new SavingsDestinationOption($"Goal · {goal.Name}", goal.Id, null)));
-        options.AddRange(snapshot.Investments
-            .Where(investment => !investment.IsArchived)
-            .OrderBy(investment => investment.Name)
-            .Select(investment => new SavingsDestinationOption($"Investment · {investment.Name}", null, investment.Id)));
+        // The investment screen is retired. Keep existing transaction links
+        // editable without offering manual holdings for new savings entries.
         if (_transactionBeingEdited?.InvestmentId is long editedInvestmentId
             && options.All(option => option.InvestmentId != editedInvestmentId))
         {
@@ -1521,7 +1600,7 @@ public sealed class MainPageViewModel : ObservableObject
             if (archivedInvestment is not null)
             {
                 options.Add(new SavingsDestinationOption(
-                    $"Investment · {archivedInvestment.Name} (archived)",
+                    $"Existing investment · {archivedInvestment.Name}",
                     null,
                     archivedInvestment.Id));
             }
@@ -1703,6 +1782,7 @@ public sealed class MainPageViewModel : ObservableObject
         OnPropertyChanged(nameof(SpendingPercentText));
         OnPropertyChanged(nameof(SpendingPercent));
         OnPropertyChanged(nameof(TransactionCountText));
+        OnPropertyChanged(nameof(RecentTransactions));
         OnPropertyChanged(nameof(EmptyTransactionsVisibility));
         OnPropertyChanged(nameof(EmptyBillsVisibility));
         OnPropertyChanged(nameof(EmptyGoalsVisibility));
@@ -1780,11 +1860,20 @@ public sealed record TransactionRow(
 
 public sealed record BillRow(
     long Id,
+    BudgetMonth Month,
     string Name,
     string DueText,
     string CategoryName,
     string AmountText,
-    string CountdownText);
+    string CountdownText,
+    bool IsPaid = false,
+    string NextDueText = "")
+{
+    public string PaymentActionText => IsPaid ? "Undo paid" : "Mark as paid";
+    public string PaymentActionName => $"{PaymentActionText}: {Name}, {Month.FirstDay:MMMM yyyy}";
+    public Visibility PaidVisibility => IsPaid ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility NextDueVisibility => string.IsNullOrEmpty(NextDueText) ? Visibility.Collapsed : Visibility.Visible;
+}
 
 public sealed record GoalRow(
     long Id,

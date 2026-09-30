@@ -4,7 +4,16 @@
 
 Make monthly budgeting fast enough to become a habit while keeping the user's data on their Windows PC.
 
-## First-release scope
+## Current local 1.1.0 changes
+
+- Simplify everyday use to Today, Activity, Bills, Budget and Goals; reveal forms on demand and keep Future plan/Insights under Budget.
+- Preserve the private planning profile, original comparisons and unknown actuals; startup opens Today rather than estimates.
+- Track bill completion per due month, without generating another expense; advance next-unpaid countdowns past paid occurrences.
+- Retire the manual Investments interface and new investment destinations. Preserve legacy records, links and backup compatibility. No unsupported automatic market/holdings connection or AI estimation is substituted.
+- Read supported complete Maybank savings/current-account PDFs locally. Validate signed amounts, every running balance and final totals. Reject ambiguous layouts. Require selection, classification and review before atomically adding rows; no duplicate upserts or assumed opening income.
+- Offer optional one-way monthly summaries to Notion. Keep individual transactions, PDFs, goals, holdings and private future plans local. Require a destination preview and explicit confirmation for every send. Protect the saved connection token for the current Windows user.
+
+## First-release scope (historical baseline)
 
 1. Create or open a month and navigate to adjacent months.
 2. Record income, expenses, savings, refunds, and transfers.
@@ -50,7 +59,7 @@ Make monthly budgeting fast enough to become a habit while keeping the user's da
 ## Important boundaries
 
 - No bank credential storage or bank scraping
-- No online account, cloud sync, telemetry, advertisements, or automatic data upload
+- No required online account, automatic cloud sync, telemetry, advertisements, or automatic data upload; manually approved aggregate sharing to Notion is optional
 - No financial or investment advice
 - No claim that the unencrypted database protects data from someone with access to the Windows account
 
@@ -69,4 +78,7 @@ Make monthly budgeting fast enough to become a habit while keeping the user's da
 - Editing or deleting a historical transaction updates later carry-forward totals.
 - Editing a transaction retains one record and applies the new category or savings destination.
 - Linking, relinking, editing, or deleting a savings transaction updates the appropriate goal or investment total without double counting.
-- The Investments screen can manage the three starter investments and additional custom entries, contributions, and valuations.
+- Legacy investment records and linked transactions survive the retirement of their manual management screen.
+- Cancelling a statement review adds no rows; re-importing an existing statement never overwrites edited entries.
+- Statement import leaves recorded opening money and bill checkmarks unchanged.
+- Notion sends contain only the previewed monthly aggregates, not transaction descriptions or account details; repeat sends leave unrelated page blocks alone.

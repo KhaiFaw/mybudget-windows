@@ -50,7 +50,7 @@ public sealed class SqliteBudgetRepositoryVersionTwoTests
         await using (var command = connection.CreateCommand())
         {
             command.CommandText = "PRAGMA user_version;";
-            Assert.AreEqual(3L, Convert.ToInt64(await command.ExecuteScalarAsync()));
+            Assert.AreEqual(4L, Convert.ToInt64(await command.ExecuteScalarAsync()));
         }
 
         var snapshot = await repository.LoadAsync(July);
@@ -371,13 +371,14 @@ public sealed class SqliteBudgetRepositoryVersionTwoTests
         await repository.SynchronizeRecurringIncomeAsync(new DateOnly(2026, 1, 20));
         var existingDeposit = Assert.ContainsSingle((await repository.LoadAsync(January)).Transactions);
 
-        // A current database with the v3-only table removed is byte-for-byte the
-        // relevant v2 shape and lets this test preserve a realistic linked occurrence.
+        // Remove later schema additions to preserve a realistic v2 linked occurrence.
         await using (var connection = await OpenAsync(_databasePath))
         await using (var command = connection.CreateCommand())
         {
             command.CommandText = """
                 DROP TABLE RecurringIncomeOccurrenceSuppressions;
+                DROP TABLE BillPayments;
+                ALTER TABLE RecurringBills DROP COLUMN PaymentTrackingStart;
                 PRAGMA user_version = 2;
                 """;
             await command.ExecuteNonQueryAsync();
@@ -398,7 +399,7 @@ public sealed class SqliteBudgetRepositoryVersionTwoTests
                 """;
             await using var reader = await command.ExecuteReaderAsync();
             Assert.IsTrue(await reader.ReadAsync());
-            Assert.AreEqual(3L, reader.GetInt64(0));
+            Assert.AreEqual(4L, reader.GetInt64(0));
             Assert.AreEqual(1L, reader.GetInt64(1));
         }
 

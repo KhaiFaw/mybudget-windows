@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="MyBudget.App.StatementImportDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:MyBudget.App.ViewModels"
+    Title="Review your Maybank statement"
+    PrimaryButtonText="Import selected entries" CloseButtonText="Cancel"
+    DefaultButton="Close" PrimaryButtonClick="Import_Click">
+    <Grid x:Name="ReviewContent" Width="880" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel Spacing="5">
+            <TextBlock x:Name="StatementSummary" FontWeight="SemiBold" TextWrapping="Wrap"/>
+            <TextBlock Text="Processed on this PC, without AI. Running balances and final totals reconcile. Review the type and category before importing. No bank login is needed." TextWrapping="Wrap"/>
+            <TextBlock Text="Own-account transfers and credit-card repayments can be transfers, not new spending. Compare salary deposits with your recurring income. The statement's opening balance will NOT be added automatically." Style="{StaticResource SecondaryTextStyle}" FontSize="12"/>
+        </StackPanel>
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+            <Button Content="Select card purchases" Click="SelectPurchases_Click"/>
+            <Button Content="Select all new rows" Click="SelectNew_Click"/>
+            <Button Content="Clear selection" Click="Clear_Click"/>
+            <TextBlock x:Name="SelectionCount" VerticalAlignment="Center"/>
+        </StackPanel>
+        <ListView x:Name="RowsList" Grid.Row="2" Height="330" SelectionMode="None" HorizontalContentAlignment="Stretch">
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="vm:StatementReviewRow">
+                    <Border BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
+                        <StackPanel Spacing="7">
+                            <Grid ColumnSpacing="10">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="32"/><ColumnDefinition Width="105"/><ColumnDefinition Width="*"/><ColumnDefinition Width="125"/></Grid.ColumnDefinitions>
+                                <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}" IsEnabled="{x:Bind CanSelect}" AutomationProperties.Name="Select statement entry"/>
+                                <TextBlock Grid.Column="1" Text="{x:Bind DateText}" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="{x:Bind Description}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="3" Text="{x:Bind AmountText}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            </Grid>
+                            <StackPanel Margin="42,0,0,0" Spacing="5">
+                                <TextBlock Text="{x:Bind Notice}" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource AppTextSecondaryBrush}"/>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <ComboBox IsEnabled="{x:Bind CanSelect}" Width="135" ItemsSource="{x:Bind Types}" SelectedItem="{x:Bind SelectedType, Mode=TwoWay}" AutomationProperties.Name="Transaction type"/>
+                                    <ComboBox IsEnabled="{x:Bind CanSelect}" Width="160" ItemsSource="{x:Bind Categories, Mode=OneWay}" DisplayMemberPath="Name" SelectedItem="{x:Bind SelectedCategory, Mode=TwoWay}" Visibility="{x:Bind CategoryVisibility, Mode=OneWay}" AutomationProperties.Name="Category"/>
+                                    <ComboBox IsEnabled="{x:Bind CanSelect}" Width="235" ItemsSource="{x:Bind Goals}" DisplayMemberPath="Name" SelectedItem="{x:Bind SelectedGoal, Mode=TwoWay}" PlaceholderText="General savings" Visibility="{x:Bind GoalVisibility, Mode=OneWay}" AutomationProperties.Name="Savings goal (optional)"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <CheckBox x:Name="ReviewConfirmed" Grid.Row="3" Content="I reviewed the selected rows, including transfers and possible duplicates."/>
+        <TextBlock x:Name="ReviewError" Grid.Row="4" Foreground="{ThemeResource AppDangerBrush}" TextWrapping="Wrap"/>
+    </Grid>
+</ContentDialog>

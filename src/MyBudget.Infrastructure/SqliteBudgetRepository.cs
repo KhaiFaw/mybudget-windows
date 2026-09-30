@@ -12,7 +12,7 @@ namespace MyBudget.Infrastructure;
 /// </summary>
 public sealed class SqliteBudgetRepository : IBudgetRepository
 {
-    private const int CurrentSchemaVersion = 3;
+    private const int CurrentSchemaVersion = 4;
     private const long MaximumCsvBytes = 10 * 1024 * 1024;
     private const int MaximumCsvRows = 50_000;
 
@@ -86,6 +86,12 @@ public sealed class SqliteBudgetRepository : IBudgetRepository
         if (schemaVersion < 3)
         {
             await MigrateToVersion3Async(connection, transaction, cancellationToken);
+            schemaVersion = 3;
+        }
+
+        if (schemaVersion < 4)
+        {
+            await MigrateToVersion4Async(connection, transaction, cancellationToken);
         }
 
         foreach (var category in DefaultCategories)
@@ -164,7 +170,10 @@ public sealed class SqliteBudgetRepository : IBudgetRepository
             investments,
             valuations,
             positions,
-            carryForward);
+            carryForward)
+        {
+            BillPayments = await ReadBillPaymentsAsync(connection, cancellationToken)
+        };
     }
 
     public async Task UpsertTransactionAsync(
@@ -311,6 +320,11 @@ public sealed class SqliteBudgetRepository : IBudgetRepository
             throw new ArgumentException("A recurring bill's start date cannot be after its end date.", nameof(bill));
         }
 
+        if (bill.PaymentTrackingStart is { Day: not 1 })
+        {
+            throw new ArgumentException("Payment tracking must start on the first day of a month.", nameof(bill));
+        }
+
         await using var connection = await OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
 
@@ -318,18 +332,18 @@ public sealed class SqliteBudgetRepository : IBudgetRepository
         {
             command.CommandText = """
                 INSERT INTO RecurringBills
-                    (Name, Amount, DueDay, CategoryId, IsActive, StartDate, EndDate)
+                    (Name, Amount, DueDay, CategoryId, IsActive, StartDate, EndDate, PaymentTrackingStart)
                 VALUES
-                    ($name, $amount, $dueDay, $categoryId, $isActive, $startDate, $endDate);
+                    ($name, $amount, $dueDay, $categoryId, $isActive, $startDate, $endDate, $trackingStart);
                 """;
         }
         else
         {
             command.CommandText = """
                 INSERT INTO RecurringBills
-                    (Id, Name, Amount, DueDay, CategoryId, IsActive, StartDate, EndDate)
+                    (Id, Name, Amount, DueDay, CategoryId, IsActive, StartDate, EndDate, PaymentTrackingStart)
                 VALUES
-                    ($id, $name, $amount, $dueDay, $categoryId, $isActive, $startDate, $endDate)
+                    ($id, $name, $amount, $dueDay, $categoryId, $isActive, $startDate, $endDate, $trackingStart)
                 ON CONFLICT(Id) DO UPDATE SET
                     Name = excluded.Name,
                     Amount = excluded.Amount,
@@ -349,12 +363,61 @@ public sealed class SqliteBudgetRepository : IBudgetRepository
         Add(command, "$isActive", bill.IsActive ? 1 : 0);
         AddNullable(command, "$startDate", bill.StartDate is null ? null : FormatDate(bill.StartDate.Value));
         AddNullable(command, "$endDate", bill.EndDate is null ? null : FormatDate(bill.EndDate.Value));
+        Add(command, "$trackingStart", FormatDate(bill.PaymentTrackingStart
+            ?? BudgetMonth.FromDate(BudgetDateSelection.GetLocalToday()).FirstDay));
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     public async Task DeleteRecurringBillAsync(long id, CancellationToken cancellationToken = default)
     {
         await ExecuteDeleteAsync("RecurringBills", "Id", id, cancellationToken);
+    }
+
+    public async Task MarkBillPaidAsync(
+        long billId,
+        BudgetMonth month,
+        DateOnly paidOn,
+        CancellationToken cancellationToken = default)
+    {
+        month.EnsureValid(nameof(month));
+        await using var connection = await OpenConnectionAsync(cancellationToken);
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken);
+        var bills = await ReadRecurringBillsAsync(connection, cancellationToken, transaction);
+        var bill = bills.FirstOrDefault(item => item.Id == billId)
+            ?? throw new ArgumentException("That recurring bill no longer exists.", nameof(billId));
+        var dueDate = RecurringDateCalculator.GetDueDate(bill, month)
+            ?? throw new ArgumentException("That bill is not scheduled for the selected month.", nameof(month));
+
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            INSERT INTO BillPayments (BillId, Year, Month, DueDate, PaidOn, Amount)
+            VALUES ($billId, $year, $month, $dueDate, $paidOn, $amount)
+            ON CONFLICT(BillId, Year, Month) DO NOTHING;
+            """;
+        Add(command, "$billId", billId);
+        Add(command, "$year", month.Year);
+        Add(command, "$month", month.Month);
+        Add(command, "$dueDate", FormatDate(dueDate));
+        Add(command, "$paidOn", FormatDate(paidOn));
+        Add(command, "$amount", FormatMoney(bill.Amount));
+        await command.ExecuteNonQueryAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    public async Task UndoBillPaymentAsync(
+        long billId,
+        BudgetMonth month,
+        CancellationToken cancellationToken = default)
+    {
+        month.EnsureValid(nameof(month));
+        await using var connection = await OpenConnectionAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM BillPayments WHERE BillId = $billId AND Year = $year AND Month = $month;";
+        Add(command, "$billId", billId);
+        Add(command, "$year", month.Year);
+        Add(command, "$month", month.Month);
+        await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     public async Task UpsertSavingsGoalAsync(
@@ -889,6 +952,39 @@ public sealed class SqliteBudgetRepository : IBudgetRepository
         return new CsvImportResult(imported, skipped);
     }
 
+    public async Task<StatementImportResult> ImportStatementEntriesAsync(
+        IReadOnlyList<BudgetTransaction> entries,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(entries);
+        if (entries.Count > 5000) throw new ArgumentException("Import at most 5,000 entries at a time.", nameof(entries));
+        await using var connection = await OpenConnectionAsync(cancellationToken);
+        foreach (var item in entries)
+        {
+            ArgumentNullException.ThrowIfNull(item);
+            if (item.Id == Guid.Empty || item.Amount <= 0 || decimal.Round(item.Amount, 2) != item.Amount ||
+                item.RecurringIncomeId is not null || item.InvestmentId is not null || item.Note.Length > 1000)
+                throw new ArgumentException("A reviewed statement entry is invalid.", nameof(entries));
+            EnsureDefinedTransactionType(item.Type, nameof(entries));
+            if (item.CategoryId is null && item.Type != TransactionType.Transfer)
+                throw new ArgumentException("Choose a category for each imported entry.", nameof(entries));
+            await EnsureTransactionCategoryCompatibleAsync(connection, item, cancellationToken);
+            await EnsureTransactionDestinationsCompatibleAsync(connection, item, cancellationToken);
+        }
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken);
+        var knownIds = await ReadTransactionIdsAsync(connection, transaction, cancellationToken);
+        var imported = 0;
+        foreach (var item in entries)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!knownIds.Add(item.Id.ToString("D"))) continue;
+            await InsertTransactionWithinTransactionAsync(connection, transaction, item, cancellationToken);
+            imported++;
+        }
+        await transaction.CommitAsync(cancellationToken);
+        return new StatementImportResult(imported, entries.Count - imported);
+    }
+
     public async Task<bool> SeedDemoDataAsync(
         BudgetMonth month,
         CancellationToken cancellationToken = default)
@@ -964,13 +1060,14 @@ public sealed class SqliteBudgetRepository : IBudgetRepository
         {
             bills.Transaction = transaction;
             bills.CommandText = """
-                INSERT INTO RecurringBills (Name, Amount, DueDay, CategoryId, IsActive, StartDate, EndDate)
-                SELECT 'Rent', '1500', 2, 1, 1, NULL, NULL
+                INSERT INTO RecurringBills (Name, Amount, DueDay, CategoryId, IsActive, StartDate, EndDate, PaymentTrackingStart)
+                SELECT 'Rent', '1500', 2, 1, 1, $first, NULL, $first
                 WHERE NOT EXISTS (SELECT 1 FROM RecurringBills WHERE Name = 'Rent' COLLATE NOCASE);
-                INSERT INTO RecurringBills (Name, Amount, DueDay, CategoryId, IsActive, StartDate, EndDate)
-                SELECT 'Internet', '129', 12, 4, 1, NULL, NULL
+                INSERT INTO RecurringBills (Name, Amount, DueDay, CategoryId, IsActive, StartDate, EndDate, PaymentTrackingStart)
+                SELECT 'Internet', '129', 12, 4, 1, $first, NULL, $first
                 WHERE NOT EXISTS (SELECT 1 FROM RecurringBills WHERE Name = 'Internet' COLLATE NOCASE);
                 """;
+            Add(bills, "$first", FormatDate(month.FirstDay));
             await bills.ExecuteNonQueryAsync(cancellationToken);
         }
 
@@ -1093,12 +1190,14 @@ public sealed class SqliteBudgetRepository : IBudgetRepository
 
     private static async Task<IReadOnlyList<RecurringBill>> ReadRecurringBillsAsync(
         SqliteConnection connection,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        SqliteTransaction? transaction = null)
     {
         var result = new List<RecurringBill>();
         await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = """
-            SELECT Id, Name, Amount, DueDay, CategoryId, IsActive, StartDate, EndDate
+            SELECT Id, Name, Amount, DueDay, CategoryId, IsActive, StartDate, EndDate, PaymentTrackingStart
             FROM RecurringBills
             ORDER BY DueDay, Name;
             """;
@@ -1113,7 +1212,27 @@ public sealed class SqliteBudgetRepository : IBudgetRepository
                 reader.IsDBNull(4) ? null : reader.GetInt64(4),
                 reader.GetInt64(5) != 0,
                 reader.IsDBNull(6) ? null : ParseDate(reader.GetString(6)),
-                reader.IsDBNull(7) ? null : ParseDate(reader.GetString(7))));
+                reader.IsDBNull(7) ? null : ParseDate(reader.GetString(7)))
+            {
+                PaymentTrackingStart = reader.IsDBNull(8) ? null : ParseDate(reader.GetString(8))
+            });
+        }
+
+        return result;
+    }
+
+    private static async Task<IReadOnlyList<BillPayment>> ReadBillPaymentsAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        var result = new List<BillPayment>();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT BillId, Year, Month, DueDate, PaidOn, Amount FROM BillPayments ORDER BY Year, Month, BillId;";
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            result.Add(new BillPayment(reader.GetInt64(0), new BudgetMonth(reader.GetInt32(1), reader.GetInt32(2)),
+                ParseDate(reader.GetString(3)), ParseDate(reader.GetString(4)), ParseMoney(reader.GetString(5))));
         }
 
         return result;
@@ -1697,6 +1816,33 @@ public sealed class SqliteBudgetRepository : IBudgetRepository
             );
 
             PRAGMA user_version = 3;
+            """;
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static async Task MigrateToVersion4Async(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            ALTER TABLE RecurringBills ADD COLUMN PaymentTrackingStart TEXT NULL;
+            UPDATE RecurringBills SET PaymentTrackingStart = date('now', 'localtime', 'start of month');
+
+            CREATE TABLE BillPayments (
+                BillId  INTEGER NOT NULL,
+                Year    INTEGER NOT NULL CHECK (Year BETWEEN 1 AND 9999),
+                Month   INTEGER NOT NULL CHECK (Month BETWEEN 1 AND 12),
+                DueDate TEXT NOT NULL CHECK (substr(DueDate, 1, 7) = printf('%04d-%02d', Year, Month)),
+                PaidOn  TEXT NOT NULL,
+                Amount  TEXT NOT NULL CHECK (length(trim(Amount)) > 0 AND CAST(Amount AS NUMERIC) >= 0),
+                PRIMARY KEY (BillId, Year, Month),
+                FOREIGN KEY (BillId) REFERENCES RecurringBills(Id) ON DELETE CASCADE
+            );
+
+            PRAGMA user_version = 4;
             """;
         await command.ExecuteNonQueryAsync(cancellationToken);
     }

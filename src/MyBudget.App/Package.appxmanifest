@@ -10,7 +10,7 @@
   <Identity
     Name="FC8085CC-D600-47BF-BC72-CE613BAB5662"
     Publisher="CN=KhaiFaw"
-    Version="1.0.0.0" />
+    Version="1.1.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="FC8085CC-D600-47BF-BC72-CE613BAB5662" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 

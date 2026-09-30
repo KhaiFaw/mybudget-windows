@@ -29,6 +29,18 @@ public interface IBudgetRepository
         long billId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Records completion of one month's bill without creating an expense.</summary>
+    Task MarkBillPaidAsync(
+        long billId,
+        BudgetMonth month,
+        DateOnly paidOn,
+        CancellationToken cancellationToken = default);
+
+    Task UndoBillPaymentAsync(
+        long billId,
+        BudgetMonth month,
+        CancellationToken cancellationToken = default);
+
     Task UpsertSavingsGoalAsync(
         SavingsGoal goal,
         CancellationToken cancellationToken = default);
@@ -108,6 +120,11 @@ public interface IBudgetRepository
 
     Task<CsvImportResult> ImportTransactionsCsvAsync(
         string sourceFilePath,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Atomically adds reviewed statement rows, never overwriting existing IDs.</summary>
+    Task<StatementImportResult> ImportStatementEntriesAsync(
+        IReadOnlyList<BudgetTransaction> entries,
         CancellationToken cancellationToken = default);
 
     /// <summary>

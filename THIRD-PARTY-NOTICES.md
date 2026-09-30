@@ -11,6 +11,7 @@ The self-contained Windows release includes components from these projects:
 | Microsoft.Data.Sqlite | 10.0.10 | MIT |
 | SQLite | 3.53.4 | Public domain notice |
 | SQLitePCLRaw | 3.0.5 | Apache-2.0 |
+| PdfPig | 0.1.16 | Apache-2.0 (see `licenses/Apache-2.0.txt`) |
 | Microsoft Windows App SDK | 1.8.260317003 | Microsoft Windows App SDK license and accompanying notices |
 | Microsoft WebView2 SDK | 1.0.3179.45 | BSD-style license and accompanying notices |
 | System.Numerics.Tensors | 9.0.0 | MIT and accompanying third-party notices |
